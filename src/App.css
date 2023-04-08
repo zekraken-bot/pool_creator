@@ -19,6 +19,21 @@ html, body {
   background-color: #000000;
   min-height: 15vh;
   padding-right: 10px;
+  padding-bottom: 1px;
   font-size: 17px;
   color: white;
+}
+
+.column-header {
+  color: white;
+}
+
+.footer {
+  font-size: 12px;
+  color: rgb(228, 184, 209);
+  display: flex;
+  justify-content: center;
+}
+a:link, a:visited { 
+  color: rgb(228, 184, 209);
 }
