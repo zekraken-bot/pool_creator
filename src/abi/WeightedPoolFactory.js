@@ -1,4 +1,3 @@
-export const FactoryAddress = '0x230a59f4d9adc147480f03b0d3fffecd56c3289a'
 export const CreateABI = [
     {
       "inputs": [

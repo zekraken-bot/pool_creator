@@ -2,10 +2,12 @@ import './App.css';
 import { useEffect, useState } from "react"
 import { ethers } from 'ethers';
 import { Grid, TextField, Button } from '@mui/material'
-import { CreateABI, FactoryAddress } from './abi/WeightedPoolFactory'
+import { CreateABI } from './abi/WeightedPoolFactory'
+import { vaultABI } from './abi/WeightedPoolFactory'
 
 function App() {
   
+  const FactoryAddress = '0x230a59f4d9adc147480f03b0d3fffecd56c3289a'
   const [walletAddress, setWalletAddress] = useState()
   const [buttonText, setButtonText] = useState ('Connect Wallet')
   const [network, setNetwork] = useState()
@@ -76,18 +78,30 @@ function App() {
     const signer = await provider.getSigner();
     const ethcontract = new ethers.Contract(FactoryAddress, CreateABI, signer);
     const gasoverride = { gasLimit: 6000000 };
+  
+    const filteredTokens = textFieldValues[0].filter(token => token !== '');
+    const filteredWeights = textFieldValues[1].filter(weight => weight !== '');
+  
     // token address, token weights, rate providers
-    const tokens = textFieldValues[0].map(token => token === '' ? '0x0000000000000000000000000000000000000000' : token);
-    const weights = textFieldValues[1].map(weight => weight === '' ? '000000000000000000' : weight);
-    const rateProviders = textFieldValues[2].map(rateProvider => rateProvider === '' ? '0x0000000000000000000000000000000000000000' : rateProvider);
+    const tokens = filteredTokens;
+    const weights = filteredWeights;
+    const defaultRateProvider = '0x0000000000000000000000000000000000000000';
+    const rateProviders = textFieldValues[2].filter(rateProvider => rateProvider !== '');
+    const rateProvidersLength = tokens.length;
+  
+    // Fill rateProviders with the default value based on the length of tokens array
+    for (let i = rateProviders.length; i < rateProvidersLength; i++) {
+      rateProviders.push(defaultRateProvider);
+    }
+  
     await ethcontract.create(
-      poolName, 
-      poolSymbol, 
+      poolName,
+      poolSymbol,
       tokens,
       weights,
       rateProviders,
       swapFeePercentage,
-      ownerAddress, 
+      ownerAddress,
       "0x0000000000000000000000000000000000000000000000000000000000000000",
       gasoverride
     );
