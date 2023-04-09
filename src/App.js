@@ -70,40 +70,66 @@ function App() {
   } 
   
   async function createPool() {
-    await requestAccount()
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    await provider.send("eth_requestAccounts", [])
-    const signer = await provider.getSigner()
-    const ethcontract = new ethers.Contract(FactoryAddress, CreateABI, signer)
-    const gasoverride = { gasLimit: 6000000 }
-    await ethcontract.create(poolName, poolSymbol, ["0xdfcea9088c8a88a76ff74892c1457c17dfeef9c1", "0xfa8449189744799ad2ace7e0ebac8bb7575eff47"],["800000000000000000", "200000000000000000"], ["0x0000000000000000000000000000000000000000", "0x0000000000000000000000000000000000000000"], "10000000000000000", "0xaffc70b81d54f229a5f50ec07e2c76d2aaad07ae", "0x0000000000000000000000000000000000000000000000000000000000000000", gasoverride)
+    await requestAccount();
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const ethcontract = new ethers.Contract(FactoryAddress, CreateABI, signer);
+    const gasoverride = { gasLimit: 6000000 };
+    // token address, token weights, rate providers
+    const tokens = textFieldValues[0].map(token => token === '' ? '0x0000000000000000000000000000000000000000' : token);
+    const weights = textFieldValues[1].map(weight => weight === '' ? '000000000000000000' : weight);
+    const rateProviders = textFieldValues[2].map(rateProvider => rateProvider === '' ? '0x0000000000000000000000000000000000000000' : rateProvider);
+    await ethcontract.create(
+      poolName, 
+      poolSymbol, 
+      tokens,
+      weights,
+      rateProviders,
+      swapFeePercentage,
+      ownerAddress, 
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      gasoverride
+    );
   }
 
   const numRows = 8;
   const numCols = 3;
-  const textFields = Array(numCols).fill().map(() => (
-    Array(numRows).fill().map((_, index) => (
-      <Grid item xs={12} key={index}>
+  const [textFieldValues, setTextFieldValues] = useState(Array(numCols).fill().map(() => (
+    Array(numRows).fill('')
+  )));
+  
+  const handleTextFieldChange = (colIndex, rowIndex, value) => {
+    const newTextFieldValues = [...textFieldValues];
+    newTextFieldValues[colIndex][rowIndex] = value;
+    setTextFieldValues(newTextFieldValues);
+  };
+  
+  const textFields = Array(numCols).fill().map((_, colIndex) => (
+    Array(numRows).fill().map((_, rowIndex) => (
+      <Grid item xs={12} key={rowIndex} sx={{ padding: '3px' }}>
         <TextField
-          label={''}
+          label={colIndex === 0 ? `Token Address ${rowIndex + 1}` :
+                 colIndex === 1 ? `Token Weight ${rowIndex + 1}` :
+                                  `Rate Provider ${rowIndex + 1}`}
+          value={textFieldValues[colIndex][rowIndex]}
+          onChange={(e) => handleTextFieldChange(colIndex, rowIndex, e.target.value)}
           InputLabelProps={{ sx: { color: 'white' } }}
-          InputProps={{ sx: { color: 'white' } }}
-          FormHelperTextProps={{ sx: { color: 'white' } }}
+          InputProps={{ sx: { color: 'yellow', width: '325px', fontSize: '12px' } }}
         />
       </Grid>
     ))
   ))
 
-  const additionalTextFields = [  { label: "Pool Name", id: "poolName", value: poolName, onChange: setPoolName },  { label: "Pool Symbol", id: "poolSymbol", value: poolSymbol, onChange: setPoolSymbol },  { label: "Swap Fee Percentage", id: "swapFeePercentage", value: swapFeePercentage, onChange: setSwapFeePercentage },  { label: "Owner Address", id: "ownerAddress", value: ownerAddress, onChange: setOwnerAddress },].map(({ label, id, value, onChange }, index) => (
-    <Grid item xs={12} key={index}>
+  const additionalTextFields = [{label: "Pool Name", id: "poolName", value: poolName, onChange: setPoolName },{label: "Pool Symbol", id: "poolSymbol", value: poolSymbol, onChange: setPoolSymbol },{label: "Swap Fee Percentage", id: "swapFeePercentage", value: swapFeePercentage, onChange: setSwapFeePercentage },{label: "Owner Address", id: "ownerAddress", value: ownerAddress, onChange: setOwnerAddress },].map(({label, id, value, onChange}, index) => (
+    <Grid item xs={12} key={index} sx={{ padding: '3px' }}>
       <TextField
         label={label}
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        InputLabelProps={{ sx: { color: "white" } }}
-        InputProps={{ sx: { color: "white" } }}
-        FormHelperTextProps={{ sx: { color: "white" } }}
+        InputLabelProps={{ sx: { color: 'white' } }}
+        InputProps={{ sx: { color: 'yellow', width: '325px', fontSize: '12px' } }}
       />
     </Grid>
   ))
@@ -120,14 +146,15 @@ function App() {
       <div className="mainContent">
       <Button variant="contained" onClick={createPool}>Create Pool</Button>
       </div>
+      <br />
       <Grid container spacing={1} justifyContent="center">
-        <Grid item xs={3} sx={{ border: '1px solid black' }}>
+        <Grid item xs={3}>
           {additionalTextFields}
         </Grid>
       </Grid>
       <Grid container spacing={1} justifyContent="center">
         {textFields.map((column, index) => (
-          <Grid item xs={3} key={index} sx={{ border: '1px solid black' }}>
+          <Grid item xs={3} key={index}>
             <h2 className="column-header">
               {index === 0 && 'Token Addresses'}
               {index === 1 && 'Token Weights'}
