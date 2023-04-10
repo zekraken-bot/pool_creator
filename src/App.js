@@ -1,9 +1,12 @@
 import "./App.css";
-import { useEffect, useState } from "react";
+import Typography from "@mui/material/Typography";
+import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import { Grid, TextField, Button } from "@mui/material";
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
 import { CreateABI } from "./abi/WeightedPoolFactory";
-import { vaultABI } from "./abi/WeightedPoolFactory";
+import { ERC20 } from "./abi/erc20";
 
 function App() {
   const FactoryAddress = "0x230a59f4d9adc147480f03b0d3fffecd56c3289a";
@@ -17,6 +20,25 @@ function App() {
   const [ownerAddress, setOwnerAddress] = useState(
     "0xafFC70b81D54F229A5F50ec07e2c76D2AAAD07Ae"
   );
+  const [approvedTokens, setApprovedTokens] = useState(
+    new Array(8).fill(false)
+  );
+  const contractAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
+  const amountToApprove =
+    "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+
+  const rows = new Array(8).fill(null);
+  const [tokenAddresses, setTokenAddresses] = useState(new Array(8).fill(""));
+  const [tokenWeights, setTokenWeights] = useState(new Array(8).fill(""));
+  const [rateProviders, setRateProviders] = useState(new Array(8).fill(""));
+  const handleInputChange = (event, rowIndex, setter) => {
+    const newValue = event.target.value;
+    setter((prevState) => {
+      const newState = [...prevState];
+      newState[rowIndex] = newValue;
+      return newState;
+    });
+  };
 
   useEffect(() => {
     async function checkWalletonLoad() {
@@ -29,11 +51,8 @@ function App() {
         });
         setNetwork(getNetworkName(networkId));
         console.log("Your wallet is connected");
-        setWalletAddress([
-          accounts[0].slice(0, 5),
-          "...",
-          accounts[0].slice(37, 42),
-        ]);
+        const ethaddress = accounts[0];
+        setWalletAddress(ethaddress);
         setButtonText("Wallet Connected");
       } else {
         console.log("Metamask is not connected");
@@ -46,8 +65,30 @@ function App() {
     window.ethereum.on("accountsChanged", () => {
       checkWalletonLoad();
     });
+
+    async function checkApprovedTokens() {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const newApprovedTokens = [...approvedTokens];
+      for (let i = 0; i < tokenAddresses.length; i++) {
+        const tokenAddress = tokenAddresses[i];
+        if (!tokenAddress) continue;
+        const tokenContract = new ethers.Contract(
+          tokenAddress,
+          ERC20,
+          provider
+        );
+        const approvedAmount = await tokenContract.allowance(
+          walletAddress,
+          contractAddress
+        );
+        newApprovedTokens[i] = approvedAmount.gte(amountToApprove);
+      }
+      setApprovedTokens(newApprovedTokens);
+    }
+
     checkWalletonLoad();
-  }, []);
+    checkApprovedTokens();
+  }, [tokenAddresses, approvedTokens, walletAddress]);
 
   function getNetworkName(networkId) {
     switch (networkId) {
@@ -70,11 +111,8 @@ function App() {
         const accounts = await window.ethereum.request({
           method: "eth_requestAccounts",
         });
-        setWalletAddress([
-          accounts[0].slice(0, 5),
-          "...",
-          accounts[0].slice(37, 42),
-        ]);
+        const ethaddress = accounts[0];
+        setWalletAddress(ethaddress);
         window.ethereum.on("accountsChanged", requestAccount);
         setButtonText("Wallet Connected");
       } catch (error) {
@@ -93,23 +131,21 @@ function App() {
     const ethcontract = new ethers.Contract(FactoryAddress, CreateABI, signer);
     const gasoverride = { gasLimit: 6000000 };
 
-    const filteredTokens = textFieldValues[0].filter((token) => token !== "");
-    const filteredWeights = textFieldValues[1].filter(
-      (weight) => weight !== ""
-    );
+    const filteredTokens = tokenAddresses.filter((token) => token !== "");
+    const filteredWeights = tokenWeights.filter((weight) => weight !== "");
 
     // token address, token weights, rate providers
     const tokens = filteredTokens;
     const weights = filteredWeights;
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    const rateProviders = textFieldValues[2].filter(
+    const filteredRateProviders = rateProviders.filter(
       (rateProvider) => rateProvider !== ""
     );
     const rateProvidersLength = tokens.length;
 
     // Fill rateProviders with the default value based on the length of tokens array
-    for (let i = rateProviders.length; i < rateProvidersLength; i++) {
-      rateProviders.push(defaultRateProvider);
+    for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
+      filteredRateProviders.push(defaultRateProvider);
     }
 
     await ethcontract.create(
@@ -117,7 +153,7 @@ function App() {
       poolSymbol,
       tokens,
       weights,
-      rateProviders,
+      filteredRateProviders,
       swapFeePercentage,
       ownerAddress,
       "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -125,47 +161,33 @@ function App() {
     );
   }
 
-  const numRows = 8;
-  const numCols = 3;
-  const [textFieldValues, setTextFieldValues] = useState(
-    Array(numCols)
-      .fill()
-      .map(() => Array(numRows).fill(""))
-  );
+  // const checkAllowance = async (tokenAddress, contractAddress) => {
+  //   const provider = new ethers.providers.Web3Provider(window.ethereum);
+  //   const tokenContract = new ethers.Contract(tokenAddress, ERC20, provider);
+  //   const approvedAmount = await tokenContract.allowance(
+  //     walletAddress,
+  //     contractAddress
+  //   );
+  //   return approvedAmount.gte(amountToApprove);
+  // };
 
-  const handleTextFieldChange = (colIndex, rowIndex, value) => {
-    const newTextFieldValues = [...textFieldValues];
-    newTextFieldValues[colIndex][rowIndex] = value;
-    setTextFieldValues(newTextFieldValues);
+  const handleApprovalClick = async (tokenAddress, contractAddress, index) => {
+    // Token needs to be approved, call approve() method on token contract
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
+    const gasLimit = 6000000;
+    const tx = await tokenContract.approve(contractAddress, amountToApprove, {
+      gasLimit,
+    });
+    await tx.wait();
+    // Update state
+    setApprovedTokens((prevState) => {
+      const newState = [...prevState];
+      newState[index] = true;
+      return newState;
+    });
   };
-
-  const textFields = Array(numCols)
-    .fill()
-    .map((_, colIndex) =>
-      Array(numRows)
-        .fill()
-        .map((_, rowIndex) => (
-          <Grid item xs={12} key={rowIndex} sx={{ padding: "3px" }}>
-            <TextField
-              label={
-                colIndex === 0
-                  ? `Token Address ${rowIndex + 1}`
-                  : colIndex === 1
-                  ? `Token Weight ${rowIndex + 1}`
-                  : `Rate Provider ${rowIndex + 1}`
-              }
-              value={textFieldValues[colIndex][rowIndex]}
-              onChange={(e) =>
-                handleTextFieldChange(colIndex, rowIndex, e.target.value)
-              }
-              InputLabelProps={{ sx: { color: "white" } }}
-              InputProps={{
-                sx: { color: "yellow", width: "325px", fontSize: "12px" },
-              }}
-            />
-          </Grid>
-        ))
-    );
 
   const additionalTextFields = [
     {
@@ -193,7 +215,7 @@ function App() {
       onChange: setOwnerAddress,
     },
   ].map(({ label, id, value, onChange }, index) => (
-    <Grid item xs={12} key={index} sx={{ padding: "3px" }}>
+    <Grid item xs={8} key={index} sx={{ padding: "6px" }}>
       <TextField
         label={label}
         id={id}
@@ -231,20 +253,121 @@ function App() {
           {additionalTextFields}
         </Grid>
       </Grid>
-      <Grid container spacing={1} justifyContent="center">
-        {textFields.map((column, index) => (
-          <Grid item xs={3} key={index}>
-            <h2 className="column-header">
-              {index === 0 && "Token Addresses"}
-              {index === 1 && "Token Weights"}
-              {index === 2 && "Rate Providers"}
-            </h2>
-            {column}
+      <br />
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Container maxWidth="xl">
+          <Grid container spacing={2}>
+            <Grid item xs={3}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Token Addresses
+              </Typography>
+            </Grid>
+            <Grid item xs={3}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Token Weights
+              </Typography>
+            </Grid>
+            <Grid item xs={3}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Rate Providers
+              </Typography>
+            </Grid>
+            <Grid item xs={3} />
+
+            {rows.map((_, rowIndex) => (
+              <React.Fragment key={rowIndex}>
+                <Grid item xs={3}>
+                  <TextField
+                    label={`Token Address ${rowIndex + 1}`}
+                    value={tokenAddresses[rowIndex]}
+                    onChange={(event) =>
+                      handleInputChange(event, rowIndex, setTokenAddresses)
+                    }
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        color: "yellow",
+                        fontSize: "12px",
+                      },
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    label={`Token Weight ${rowIndex + 1}`}
+                    value={tokenWeights[rowIndex]}
+                    onChange={(event) =>
+                      handleInputChange(event, rowIndex, setTokenWeights)
+                    }
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        color: "yellow",
+                        fontSize: "12px",
+                      },
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <TextField
+                    label={`Rate Provider ${rowIndex + 1}`}
+                    value={rateProviders[rowIndex]}
+                    onChange={(event) =>
+                      handleInputChange(event, rowIndex, setRateProviders)
+                    }
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        color: "yellow",
+                        fontSize: "12px",
+                      },
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={3} container alignItems="center">
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    disabled={approvedTokens[rowIndex]}
+                    onClick={() =>
+                      handleApprovalClick(
+                        tokenAddresses[rowIndex],
+                        contractAddress,
+                        rowIndex
+                      )
+                    }
+                  >
+                    {approvedTokens[rowIndex]
+                      ? "Token Approved"
+                      : `Approve Token ${rowIndex + 1}`}
+                  </Button>
+                </Grid>
+              </React.Fragment>
+            ))}
           </Grid>
-        ))}
-      </Grid>
-      <br />
-      <br />
+        </Container>
+      </Box>
       <br />
       <br />
       <footer className="footer">
