@@ -7,8 +7,10 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import { CreateABI } from "./abi/WeightedPoolFactory";
 import { ERC20 } from "./abi/erc20";
+import { vaultABI } from "./abi/BalVault";
 
 function App() {
+  const [isConnected, setIsConnected] = useState(false);
   const FactoryAddress = "0x230a59f4d9adc147480f03b0d3fffecd56c3289a";
   const [walletAddress, setWalletAddress] = useState();
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -31,6 +33,7 @@ function App() {
   const [tokenAddresses, setTokenAddresses] = useState(new Array(8).fill(""));
   const [tokenWeights, setTokenWeights] = useState(new Array(8).fill(""));
   const [rateProviders, setRateProviders] = useState(new Array(8).fill(""));
+  const [tokenAmounts, setTokenAmounts] = useState(new Array(8).fill(""));
   const handleInputChange = (event, rowIndex, setter) => {
     const newValue = event.target.value;
     setter((prevState) => {
@@ -45,7 +48,7 @@ function App() {
       const accounts = await window.ethereum.request({
         method: "eth_accounts",
       });
-      if (accounts.length) {
+      if (accounts.length && !isConnected) {
         const networkId = await window.ethereum.request({
           method: "net_version",
         });
@@ -54,17 +57,24 @@ function App() {
         const ethaddress = accounts[0];
         setWalletAddress(ethaddress);
         setButtonText("Wallet Connected");
-      } else {
+        setIsConnected(true);
+      } else if (!accounts.length && isConnected) {
         console.log("Metamask is not connected");
+        setIsConnected(false);
       }
     }
 
-    window.ethereum.on("chainChanged", () => {
+    const onChainChanged = () => {
       checkWalletonLoad();
-    });
-    window.ethereum.on("accountsChanged", () => {
+    };
+
+    const onAccountsChanged = () => {
       checkWalletonLoad();
-    });
+    };
+
+    window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() + 2); // Increase the max listeners limit
+    window.ethereum.on("chainChanged", onChainChanged);
+    window.ethereum.on("accountsChanged", onAccountsChanged);
 
     async function checkApprovedTokens() {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -88,7 +98,13 @@ function App() {
 
     checkWalletonLoad();
     checkApprovedTokens();
-  }, [tokenAddresses, approvedTokens, walletAddress]);
+
+    return () => {
+      window.ethereum.removeListener("chainChanged", onChainChanged);
+      window.ethereum.removeListener("accountsChanged", onAccountsChanged);
+      window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() - 2); // Decrease the max listeners limit back
+    };
+  }, [tokenAddresses, approvedTokens, walletAddress, isConnected]);
 
   function getNetworkName(networkId) {
     switch (networkId) {
@@ -161,6 +177,57 @@ function App() {
     );
   }
 
+  async function initJoin() {
+    await requestAccount();
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const ethcontract = new ethers.Contract(contractAddress, vaultABI, signer);
+    const gasoverride = { gasLimit: 6000000 };
+
+    const poolId =
+      "0xd503dd8ae0e4669106167ad1a7df0569a9c1340500020000000000000000073a";
+    const assets = [
+      "0xdfcea9088c8a88a76ff74892c1457c17dfeef9c1",
+      "0xfa8449189744799ad2ace7e0ebac8bb7575eff47",
+    ];
+    const amountsIn = ["1000000000000000", "70000000000000000"];
+
+    const linkedItems = assets.map((asset, index) => [asset, amountsIn[index]]);
+
+    linkedItems.sort((a, b) => {
+      if (a[0] < b[0]) return -1;
+      if (a[0] > b[0]) return 1;
+      return 0;
+    });
+
+    const sortedAssets = linkedItems.map((item) => item[0]);
+    const sortedAmountsIn = linkedItems.map((item) => item[1]);
+
+    const JOIN_KIND_INIT = 0;
+
+    const userData = ethers.utils.defaultAbiCoder.encode(
+      ["uint256", "uint256[]"],
+      [JOIN_KIND_INIT, sortedAmountsIn]
+    );
+
+    const joinRequest = {
+      assets: sortedAssets,
+      maxAmountsIn: amountsIn,
+      userData,
+      fromInternalBalance: false,
+    };
+
+    console.log(joinRequest);
+
+    await ethcontract.joinPool(
+      poolId,
+      walletAddress,
+      walletAddress,
+      joinRequest,
+      gasoverride
+    );
+  }
   // const checkAllowance = async (tokenAddress, contractAddress) => {
   //   const provider = new ethers.providers.Web3Provider(window.ethereum);
   //   const tokenContract = new ethers.Contract(tokenAddress, ERC20, provider);
@@ -243,8 +310,15 @@ function App() {
       </header>
       <br />
       <div className="mainContent">
-        <Button variant="contained" onClick={createPool}>
+        <Button
+          variant="contained"
+          onClick={createPool}
+          sx={{ marginRight: 2 }} // Add right margin to the first button
+        >
           Create Pool
+        </Button>
+        <Button variant="contained" onClick={initJoin}>
+          Join Pool
         </Button>
       </div>
       <br />
@@ -262,13 +336,13 @@ function App() {
         }}
       >
         <Container maxWidth="xl">
-          <Grid container spacing={2}>
+          <Grid container spacing={1}>
             <Grid item xs={3}>
               <Typography variant="h6" sx={{ color: "pink" }}>
                 Token Addresses
               </Typography>
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={2}>
               <Typography variant="h6" sx={{ color: "pink" }}>
                 Token Weights
               </Typography>
@@ -278,9 +352,14 @@ function App() {
                 Rate Providers
               </Typography>
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={2}>
               <Typography variant="h6" sx={{ color: "pink" }}>
                 Token Approvals
+              </Typography>
+            </Grid>
+            <Grid item xs={2}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Token Amounts
               </Typography>
             </Grid>
 
@@ -307,7 +386,7 @@ function App() {
                     }}
                   />
                 </Grid>
-                <Grid item xs={3}>
+                <Grid item xs={2}>
                   <TextField
                     label={`Token Weight ${rowIndex + 1}`}
                     value={tokenWeights[rowIndex]}
@@ -349,7 +428,7 @@ function App() {
                     }}
                   />
                 </Grid>
-                <Grid item xs={3} container alignItems="center">
+                <Grid item xs={2} container alignItems="center">
                   <Button
                     variant="contained"
                     color="primary"
@@ -367,11 +446,34 @@ function App() {
                       : `Approve Token ${rowIndex + 1}`}
                   </Button>
                 </Grid>
+                <Grid item xs={2}>
+                  <TextField
+                    label={`Token Amount ${rowIndex + 1}`}
+                    value={tokenAmounts[rowIndex]}
+                    onChange={(event) =>
+                      handleInputChange(event, rowIndex, setTokenAmounts)
+                    }
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        color: "yellow",
+                        fontSize: "12px",
+                      },
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Grid>
               </React.Fragment>
             ))}
           </Grid>
         </Container>
       </Box>
+      <br />
+
       <br />
       <br />
       <footer className="footer">
