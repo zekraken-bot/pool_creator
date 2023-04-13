@@ -278,7 +278,11 @@ function App() {
                 Rate Providers
               </Typography>
             </Grid>
-            <Grid item xs={3} />
+            <Grid item xs={3}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Token Approvals
+              </Typography>
+            </Grid>
 
             {rows.map((_, rowIndex) => (
               <React.Fragment key={rowIndex}>
