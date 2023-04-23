@@ -17,8 +17,7 @@ function App() {
   const [network, setNetwork] = useState();
   const [poolName, setPoolName] = useState("test");
   const [poolSymbol, setPoolSymbol] = useState("test");
-  const [swapFeePercentage, setSwapFeePercentage] =
-    useState("10000000000000000");
+  const [swapFeePercentage, setSwapFeePercentage] = useState("0.01");
   const [ownerAddress, setOwnerAddress] = useState(
     "0xafFC70b81D54F229A5F50ec07e2c76D2AAAD07Ae"
   );
@@ -170,13 +169,18 @@ function App() {
 
     const salt0x = "0x" + salt;
 
+    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
+      swapFeePercentage.toString(),
+      18
+    );
+
     await ethcontract.create(
       poolName,
       poolSymbol,
       tokens,
       weights,
       filteredRateProviders,
-      swapFeePercentage,
+      swapFeePercentageWithDecimals,
       ownerAddress,
       salt0x,
       gasoverride
@@ -193,13 +197,27 @@ function App() {
 
     const poolId =
       "0xd503dd8ae0e4669106167ad1a7df0569a9c1340500020000000000000000073a";
-    const assets = [
-      "0xdfcea9088c8a88a76ff74892c1457c17dfeef9c1",
-      "0xfa8449189744799ad2ace7e0ebac8bb7575eff47",
-    ];
-    const amountsIn = ["1000000000000000", "70000000000000000"];
 
-    const linkedItems = assets.map((asset, index) => [asset, amountsIn[index]]);
+    const assets = tokenAddresses.filter((address) => address !== "");
+    const amountsIn = tokenAmounts.filter((amount) => amount !== "");
+
+    const sortedAmountsIn = [];
+    const multipliedAmounts = []; // new array to hold the multiplied amounts
+    for (let i = 0; i < amountsIn.length; i++) {
+      const tokenAddress = tokenAddresses[i];
+      const amount = amountsIn[i];
+      if (tokenAddress && amount) {
+        const decimals = await checkDecimals(tokenAddress);
+        const adjustedAmount = ethers.utils.parseUnits(amount, decimals);
+        sortedAmountsIn.push(adjustedAmount.toString());
+        multipliedAmounts.push(adjustedAmount);
+      }
+    }
+
+    const linkedItems = assets.map((asset, index) => [
+      asset,
+      multipliedAmounts[index], // use the new array here
+    ]);
 
     linkedItems.sort((a, b) => {
       if (a[0] < b[0]) return -1;
@@ -208,18 +226,18 @@ function App() {
     });
 
     const sortedAssets = linkedItems.map((item) => item[0]);
-    const sortedAmountsIn = linkedItems.map((item) => item[1]);
+    const sortedAmountsIn2 = linkedItems.map((item) => item[1].toString());
 
     const JOIN_KIND_INIT = 0;
 
     const userData = ethers.utils.defaultAbiCoder.encode(
       ["uint256", "uint256[]"],
-      [JOIN_KIND_INIT, sortedAmountsIn]
+      [JOIN_KIND_INIT, sortedAmountsIn2]
     );
 
     const joinRequest = {
       assets: sortedAssets,
-      maxAmountsIn: amountsIn,
+      maxAmountsIn: sortedAmountsIn2,
       userData,
       fromInternalBalance: false,
     };
@@ -263,18 +281,11 @@ function App() {
   };
 
   async function checkDecimals(tokenAddress) {
-    // Token needs to be approved, call approve() method on token contract
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = await provider.getSigner();
     const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
-    const gasLimit = 6000000;
-    const tx = await tokenContract.decimals({
-      gasLimit,
-    });
-    await tx.wait();
-    // Update state
-    console.log(tx);
-    console.log(tokenAddress);
+    const decimals = await tokenContract.decimals();
+    return decimals;
   }
 
   const additionalTextFields = [
@@ -494,7 +505,7 @@ function App() {
         </Container>
       </Box>
       <br />
-      <Button variant="contained" onClick={checkDecimals()}>
+      <Button variant="contained" onClick={checkDecimals}>
         check decimal
       </Button>
       <br />
