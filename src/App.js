@@ -164,6 +164,12 @@ function App() {
       filteredRateProviders.push(defaultRateProvider);
     }
 
+    const salt = [...crypto.getRandomValues(new Uint8Array(32))]
+      .map((m) => ("0" + m.toString(16)).slice(-2))
+      .join("");
+
+    const salt0x = "0x" + salt;
+
     await ethcontract.create(
       poolName,
       poolSymbol,
@@ -172,7 +178,7 @@ function App() {
       filteredRateProviders,
       swapFeePercentage,
       ownerAddress,
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      salt0x,
       gasoverride
     );
   }
@@ -255,6 +261,21 @@ function App() {
       return newState;
     });
   };
+
+  async function checkDecimals(tokenAddress) {
+    // Token needs to be approved, call approve() method on token contract
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
+    const gasLimit = 6000000;
+    const tx = await tokenContract.decimals({
+      gasLimit,
+    });
+    await tx.wait();
+    // Update state
+    console.log(tx);
+    console.log(tokenAddress);
+  }
 
   const additionalTextFields = [
     {
@@ -473,7 +494,9 @@ function App() {
         </Container>
       </Box>
       <br />
-
+      <Button variant="contained" onClick={checkDecimals()}>
+        check decimal
+      </Button>
       <br />
       <br />
       <footer className="footer">
