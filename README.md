@@ -1,17 +1,32 @@
-token addresses
-0xdfcea9088c8a88a76ff74892c1457c17dfeef9c1
-0xfa8449189744799ad2ace7e0ebac8bb7575eff47
+Usage Notes:
 
-amounts
-800000000000000000
-200000000000000000
+1. if a rate provider is not supplied, the 0x0000 address will be used
+2. swap fee can be entered as 0.01 for 1%
+3. token weights can be entered as 80/20, 50/50, etc. the appropriate values will be applied in the background
+4. token amounts can be entered as the amount you want to supply, 0.001 ETH for example, the correct digits will be applied in the background
+5. the main Balancer chains are supported
+6. contract addresses for pool factories are manually maintained, so check that the latest contracts are being used
 
-swap fee
-10000000000000000
+## Available Scripts
 
-owner
-0xaffc70b81d54f229a5f50ec07e2c76d2aaad07ae
+In the project directory run the following:
 
-rate provider
-0x0000000000000000000000000000000000000000
-0x0000000000000000000000000000000000000000
+### `npm install`
+
+Installs project depedencies, you will need `npm` installed as well as `Node.js`
+
+### `npm start`
+
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
+
+### `npm run build`
+
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!

@@ -7,30 +7,37 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import { CreateABI } from "./abi/WeightedPoolFactory";
 import { ERC20 } from "./abi/erc20";
+import { vaultABI } from "./abi/BalVault";
+import { weightedPool } from "./abi/WeightedPool";
 
 function App() {
-  const FactoryAddress = "0x230a59f4d9adc147480f03b0d3fffecd56c3289a";
+  const [isConnected, setIsConnected] = useState(false);
+  const FactoryAddress = {
+    Goerli: "0x230a59f4d9adc147480f03b0d3fffecd56c3289a",
+    Mainnet: "0x897888115Ada5773E02aA29F775430BFB5F34c51",
+    Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
+    Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
+  };
   const [walletAddress, setWalletAddress] = useState();
   const [buttonText, setButtonText] = useState("Connect Wallet");
   const [network, setNetwork] = useState();
-  const [poolName, setPoolName] = useState("test");
-  const [poolSymbol, setPoolSymbol] = useState("test");
-  const [swapFeePercentage, setSwapFeePercentage] =
-    useState("10000000000000000");
+  const [poolName, setPoolName] = useState();
+  const [poolSymbol, setPoolSymbol] = useState();
+  const [swapFeePercentage, setSwapFeePercentage] = useState();
   const [ownerAddress, setOwnerAddress] = useState(
-    "0xafFC70b81D54F229A5F50ec07e2c76D2AAAD07Ae"
+    "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
   );
   const [approvedTokens, setApprovedTokens] = useState(
     new Array(8).fill(false)
   );
-  const contractAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
-  const amountToApprove =
-    "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+  const vaultAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
   const rows = new Array(8).fill(null);
   const [tokenAddresses, setTokenAddresses] = useState(new Array(8).fill(""));
   const [tokenWeights, setTokenWeights] = useState(new Array(8).fill(""));
   const [rateProviders, setRateProviders] = useState(new Array(8).fill(""));
+  const [tokenAmounts, setTokenAmounts] = useState(new Array(8).fill(""));
+  const [poolId, setPoolId] = useState();
   const handleInputChange = (event, rowIndex, setter) => {
     const newValue = event.target.value;
     setter((prevState) => {
@@ -41,11 +48,20 @@ function App() {
   };
 
   useEffect(() => {
+    async function checkNetwork() {
+      const networkId = await window.ethereum.request({
+        method: "net_version",
+      });
+      setNetwork(getNetworkName(networkId));
+    }
+
+    checkNetwork();
+
     async function checkWalletonLoad() {
       const accounts = await window.ethereum.request({
         method: "eth_accounts",
       });
-      if (accounts.length) {
+      if (accounts.length && !isConnected) {
         const networkId = await window.ethereum.request({
           method: "net_version",
         });
@@ -54,21 +70,39 @@ function App() {
         const ethaddress = accounts[0];
         setWalletAddress(ethaddress);
         setButtonText("Wallet Connected");
-      } else {
+        setIsConnected(true);
+      } else if (!accounts.length && isConnected) {
         console.log("Metamask is not connected");
+        setIsConnected(false);
       }
     }
+    async function updateNetwork() {
+      const networkId = await window.ethereum.request({
+        method: "net_version",
+      });
+      setNetwork(getNetworkName(networkId));
+    }
 
-    window.ethereum.on("chainChanged", () => {
+    const onChainChanged = () => {
+      updateNetwork();
       checkWalletonLoad();
-    });
-    window.ethereum.on("accountsChanged", () => {
+      setNetwork(getNetworkName(window.ethereum.chainId));
+    };
+
+    const onAccountsChanged = () => {
       checkWalletonLoad();
-    });
+    };
+
+    window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() + 2);
+    window.ethereum.on("chainChanged", onChainChanged);
+    window.ethereum.on("accountsChanged", onAccountsChanged);
+
+    checkWalletonLoad();
 
     async function checkApprovedTokens() {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const newApprovedTokens = [...approvedTokens];
+      const amountToApprove = ethers.constants.MaxUint256;
       for (let i = 0; i < tokenAddresses.length; i++) {
         const tokenAddress = tokenAddresses[i];
         if (!tokenAddress) continue;
@@ -79,27 +113,31 @@ function App() {
         );
         const approvedAmount = await tokenContract.allowance(
           walletAddress,
-          contractAddress
+          vaultAddress
         );
         newApprovedTokens[i] = approvedAmount.gte(amountToApprove);
       }
       setApprovedTokens(newApprovedTokens);
     }
 
-    checkWalletonLoad();
     checkApprovedTokens();
-  }, [tokenAddresses, approvedTokens, walletAddress]);
+    return () => {
+      window.ethereum.removeListener("chainChanged", onChainChanged);
+      window.ethereum.removeListener("accountsChanged", onAccountsChanged);
+      window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() - 2);
+    };
+  }, [tokenAddresses, approvedTokens, walletAddress, isConnected]);
 
   function getNetworkName(networkId) {
     switch (networkId) {
       case "1":
         return "Mainnet";
-      case "3":
-        return "Ropsten";
-      case "4":
-        return "Rinkeby";
       case "5":
         return "Goerli";
+      case "137":
+        return "Polygon";
+      case "42161":
+        return "Arbitrum";
       default:
         return "Unknown network";
     }
@@ -128,7 +166,11 @@ function App() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
-    const ethcontract = new ethers.Contract(FactoryAddress, CreateABI, signer);
+    const ethcontract = new ethers.Contract(
+      FactoryAddress[network],
+      CreateABI,
+      signer
+    );
     const gasoverride = { gasLimit: 6000000 };
 
     const filteredTokens = tokenAddresses.filter((token) => token !== "");
@@ -136,7 +178,9 @@ function App() {
 
     // token address, token weights, rate providers
     const tokens = filteredTokens;
-    const weights = filteredWeights;
+    const weights = filteredWeights.map((weight) =>
+      ethers.utils.parseUnits((weight / 100).toString(), 18)
+    );
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
     const filteredRateProviders = rateProviders.filter(
       (rateProvider) => rateProvider !== ""
@@ -148,46 +192,126 @@ function App() {
       filteredRateProviders.push(defaultRateProvider);
     }
 
-    await ethcontract.create(
+    const salt = [...crypto.getRandomValues(new Uint8Array(32))]
+      .map((m) => ("0" + m.toString(16)).slice(-2))
+      .join("");
+
+    const salt0x = "0x" + salt;
+
+    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
+      swapFeePercentage.toString(),
+      18
+    );
+
+    const transaction = await ethcontract.create(
       poolName,
       poolSymbol,
       tokens,
       weights,
       filteredRateProviders,
-      swapFeePercentage,
+      swapFeePercentageWithDecimals,
       ownerAddress,
-      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      salt0x,
+      gasoverride
+    );
+    const receipt = await transaction.wait();
+    const newPoolContract = receipt.logs[0].address;
+
+    const ethcontract2 = new ethers.Contract(
+      newPoolContract,
+      weightedPool,
+      signer
+    );
+    const getPoolId = await ethcontract2.getPoolId();
+
+    setPoolId(getPoolId);
+  }
+
+  async function initJoin() {
+    await requestAccount();
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const ethcontract = new ethers.Contract(vaultAddress, vaultABI, signer);
+    const gasoverride = { gasLimit: 6000000 };
+
+    const assets = tokenAddresses.filter((address) => address !== "");
+    const amountsIn = tokenAmounts.filter((amount) => amount !== "");
+
+    const sortedAmountsIn = [];
+    const multipliedAmounts = []; // new array to hold the multiplied amounts
+    for (let i = 0; i < amountsIn.length; i++) {
+      const tokenAddress = tokenAddresses[i];
+      const amount = amountsIn[i];
+      if (tokenAddress && amount) {
+        const decimals = await checkDecimals(tokenAddress);
+        const adjustedAmount = ethers.utils.parseUnits(amount, decimals);
+        sortedAmountsIn.push(adjustedAmount.toString());
+        multipliedAmounts.push(adjustedAmount);
+      }
+    }
+
+    const linkedItems = assets.map((asset, index) => [
+      asset,
+      multipliedAmounts[index], // use the new array here
+    ]);
+
+    linkedItems.sort((a, b) => {
+      if (a[0] < b[0]) return -1;
+      if (a[0] > b[0]) return 1;
+      return 0;
+    });
+
+    const sortedAssets = linkedItems.map((item) => item[0]);
+    const sortedAmountsIn2 = linkedItems.map((item) => item[1].toString());
+
+    const JOIN_KIND_INIT = 0;
+
+    const userData = ethers.utils.defaultAbiCoder.encode(
+      ["uint256", "uint256[]"],
+      [JOIN_KIND_INIT, sortedAmountsIn2]
+    );
+
+    const joinRequest = {
+      assets: sortedAssets,
+      maxAmountsIn: sortedAmountsIn2,
+      userData,
+      fromInternalBalance: false,
+    };
+
+    await ethcontract.joinPool(
+      poolId,
+      walletAddress,
+      walletAddress,
+      joinRequest,
       gasoverride
     );
   }
 
-  // const checkAllowance = async (tokenAddress, contractAddress) => {
-  //   const provider = new ethers.providers.Web3Provider(window.ethereum);
-  //   const tokenContract = new ethers.Contract(tokenAddress, ERC20, provider);
-  //   const approvedAmount = await tokenContract.allowance(
-  //     walletAddress,
-  //     contractAddress
-  //   );
-  //   return approvedAmount.gte(amountToApprove);
-  // };
-
-  const handleApprovalClick = async (tokenAddress, contractAddress, index) => {
-    // Token needs to be approved, call approve() method on token contract
+  const handleApprovalClick = async (tokenAddress, vaultAddress, index) => {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = await provider.getSigner();
     const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
     const gasLimit = 6000000;
-    const tx = await tokenContract.approve(contractAddress, amountToApprove, {
+    const amountToApprove = ethers.constants.MaxUint256;
+    const tx = await tokenContract.approve(vaultAddress, amountToApprove, {
       gasLimit,
     });
     await tx.wait();
-    // Update state
     setApprovedTokens((prevState) => {
       const newState = [...prevState];
       newState[index] = true;
       return newState;
     });
   };
+
+  async function checkDecimals(tokenAddress) {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
+    const decimals = await tokenContract.decimals();
+    return decimals;
+  }
 
   const additionalTextFields = [
     {
@@ -238,13 +362,27 @@ function App() {
             {buttonText}
           </Button>
         </p>
-        <p align="right">Wallet Address: {walletAddress}</p>
+        <p align="right">
+          Wallet Address:{" "}
+          {walletAddress &&
+            `${walletAddress.substring(0, 6)}...${walletAddress.substring(
+              walletAddress.length - 6
+            )}`}
+        </p>
+
         <p align="right">Network: {network}</p>
       </header>
       <br />
       <div className="mainContent">
-        <Button variant="contained" onClick={createPool}>
+        <Button
+          variant="contained"
+          onClick={createPool}
+          sx={{ marginRight: 2 }} // Add right margin to the first button
+        >
           Create Pool
+        </Button>
+        <Button variant="contained" onClick={initJoin}>
+          Join Pool
         </Button>
       </div>
       <br />
@@ -262,13 +400,13 @@ function App() {
         }}
       >
         <Container maxWidth="xl">
-          <Grid container spacing={2}>
+          <Grid container spacing={1}>
             <Grid item xs={3}>
               <Typography variant="h6" sx={{ color: "pink" }}>
                 Token Addresses
               </Typography>
             </Grid>
-            <Grid item xs={3}>
+            <Grid item xs={2}>
               <Typography variant="h6" sx={{ color: "pink" }}>
                 Token Weights
               </Typography>
@@ -278,7 +416,16 @@ function App() {
                 Rate Providers
               </Typography>
             </Grid>
-            <Grid item xs={3} />
+            <Grid item xs={2}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Token Approvals
+              </Typography>
+            </Grid>
+            <Grid item xs={2}>
+              <Typography variant="h6" sx={{ color: "pink" }}>
+                Token Amounts
+              </Typography>
+            </Grid>
 
             {rows.map((_, rowIndex) => (
               <React.Fragment key={rowIndex}>
@@ -303,7 +450,7 @@ function App() {
                     }}
                   />
                 </Grid>
-                <Grid item xs={3}>
+                <Grid item xs={2}>
                   <TextField
                     label={`Token Weight ${rowIndex + 1}`}
                     value={tokenWeights[rowIndex]}
@@ -345,7 +492,7 @@ function App() {
                     }}
                   />
                 </Grid>
-                <Grid item xs={3} container alignItems="center">
+                <Grid item xs={2} container alignItems="center">
                   <Button
                     variant="contained"
                     color="primary"
@@ -353,7 +500,7 @@ function App() {
                     onClick={() =>
                       handleApprovalClick(
                         tokenAddresses[rowIndex],
-                        contractAddress,
+                        vaultAddress,
                         rowIndex
                       )
                     }
@@ -363,11 +510,33 @@ function App() {
                       : `Approve Token ${rowIndex + 1}`}
                   </Button>
                 </Grid>
+                <Grid item xs={2}>
+                  <TextField
+                    label={`Token Amount ${rowIndex + 1}`}
+                    value={tokenAmounts[rowIndex]}
+                    onChange={(event) =>
+                      handleInputChange(event, rowIndex, setTokenAmounts)
+                    }
+                    fullWidth
+                    InputProps={{
+                      sx: {
+                        color: "yellow",
+                        fontSize: "12px",
+                      },
+                    }}
+                    InputLabelProps={{
+                      sx: {
+                        color: "white",
+                      },
+                    }}
+                  />
+                </Grid>
               </React.Fragment>
             ))}
           </Grid>
         </Container>
       </Box>
+      <br />
       <br />
       <br />
       <footer className="footer">
