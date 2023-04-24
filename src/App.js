@@ -18,12 +18,12 @@ function App() {
     Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
     Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
   };
-  const [walletAddress, setWalletAddress] = useState();
+  const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
-  const [network, setNetwork] = useState();
-  const [poolName, setPoolName] = useState();
-  const [poolSymbol, setPoolSymbol] = useState();
-  const [swapFeePercentage, setSwapFeePercentage] = useState();
+  const [network, setNetwork] = useState("");
+  const [poolName, setPoolName] = useState("");
+  const [poolSymbol, setPoolSymbol] = useState("");
+  const [swapFeePercentage, setSwapFeePercentage] = useState("");
   const [ownerAddress, setOwnerAddress] = useState(
     "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
   );
@@ -37,7 +37,7 @@ function App() {
   const [tokenWeights, setTokenWeights] = useState(new Array(8).fill(""));
   const [rateProviders, setRateProviders] = useState(new Array(8).fill(""));
   const [tokenAmounts, setTokenAmounts] = useState(new Array(8).fill(""));
-  const [poolId, setPoolId] = useState();
+  const [poolId, setPoolId] = useState("");
   const handleInputChange = (event, rowIndex, setter) => {
     const newValue = event.target.value;
     setter((prevState) => {
