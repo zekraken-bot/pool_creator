@@ -8,10 +8,16 @@ import Container from "@mui/material/Container";
 import { CreateABI } from "./abi/WeightedPoolFactory";
 import { ERC20 } from "./abi/erc20";
 import { vaultABI } from "./abi/BalVault";
+import { weightedPool } from "./abi/WeightedPool";
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
-  const FactoryAddress = "0x230a59f4d9adc147480f03b0d3fffecd56c3289a";
+  const FactoryAddress = {
+    Goerli: "0x230a59f4d9adc147480f03b0d3fffecd56c3289a",
+    Mainnet: "0x897888115Ada5773E02aA29F775430BFB5F34c51",
+    Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
+    Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
+  };
   const [walletAddress, setWalletAddress] = useState();
   const [buttonText, setButtonText] = useState("Connect Wallet");
   const [network, setNetwork] = useState();
@@ -19,20 +25,19 @@ function App() {
   const [poolSymbol, setPoolSymbol] = useState("test");
   const [swapFeePercentage, setSwapFeePercentage] = useState("0.01");
   const [ownerAddress, setOwnerAddress] = useState(
-    "0xafFC70b81D54F229A5F50ec07e2c76D2AAAD07Ae"
+    "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
   );
   const [approvedTokens, setApprovedTokens] = useState(
     new Array(8).fill(false)
   );
-  const contractAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
-  const amountToApprove =
-    "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+  const vaultAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
   const rows = new Array(8).fill(null);
   const [tokenAddresses, setTokenAddresses] = useState(new Array(8).fill(""));
   const [tokenWeights, setTokenWeights] = useState(new Array(8).fill(""));
   const [rateProviders, setRateProviders] = useState(new Array(8).fill(""));
   const [tokenAmounts, setTokenAmounts] = useState(new Array(8).fill(""));
+  const [poolId, setPoolId] = useState();
   const handleInputChange = (event, rowIndex, setter) => {
     const newValue = event.target.value;
     setter((prevState) => {
@@ -43,6 +48,15 @@ function App() {
   };
 
   useEffect(() => {
+    async function checkNetwork() {
+      const networkId = await window.ethereum.request({
+        method: "net_version",
+      });
+      setNetwork(getNetworkName(networkId));
+    }
+
+    checkNetwork();
+
     async function checkWalletonLoad() {
       const accounts = await window.ethereum.request({
         method: "eth_accounts",
@@ -62,22 +76,33 @@ function App() {
         setIsConnected(false);
       }
     }
+    async function updateNetwork() {
+      const networkId = await window.ethereum.request({
+        method: "net_version",
+      });
+      setNetwork(getNetworkName(networkId));
+    }
 
     const onChainChanged = () => {
+      updateNetwork();
       checkWalletonLoad();
+      setNetwork(getNetworkName(window.ethereum.chainId));
     };
 
     const onAccountsChanged = () => {
       checkWalletonLoad();
     };
 
-    window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() + 2); // Increase the max listeners limit
+    window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() + 2);
     window.ethereum.on("chainChanged", onChainChanged);
     window.ethereum.on("accountsChanged", onAccountsChanged);
+
+    checkWalletonLoad();
 
     async function checkApprovedTokens() {
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const newApprovedTokens = [...approvedTokens];
+      const amountToApprove = ethers.constants.MaxUint256;
       for (let i = 0; i < tokenAddresses.length; i++) {
         const tokenAddress = tokenAddresses[i];
         if (!tokenAddress) continue;
@@ -88,20 +113,18 @@ function App() {
         );
         const approvedAmount = await tokenContract.allowance(
           walletAddress,
-          contractAddress
+          vaultAddress
         );
         newApprovedTokens[i] = approvedAmount.gte(amountToApprove);
       }
       setApprovedTokens(newApprovedTokens);
     }
 
-    checkWalletonLoad();
     checkApprovedTokens();
-
     return () => {
       window.ethereum.removeListener("chainChanged", onChainChanged);
       window.ethereum.removeListener("accountsChanged", onAccountsChanged);
-      window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() - 2); // Decrease the max listeners limit back
+      window.ethereum.setMaxListeners(window.ethereum.getMaxListeners() - 2);
     };
   }, [tokenAddresses, approvedTokens, walletAddress, isConnected]);
 
@@ -109,12 +132,12 @@ function App() {
     switch (networkId) {
       case "1":
         return "Mainnet";
-      case "3":
-        return "Ropsten";
-      case "4":
-        return "Rinkeby";
       case "5":
         return "Goerli";
+      case "137":
+        return "Polygon";
+      case "42161":
+        return "Arbitrum";
       default:
         return "Unknown network";
     }
@@ -143,7 +166,11 @@ function App() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
-    const ethcontract = new ethers.Contract(FactoryAddress, CreateABI, signer);
+    const ethcontract = new ethers.Contract(
+      FactoryAddress[network],
+      CreateABI,
+      signer
+    );
     const gasoverride = { gasLimit: 6000000 };
 
     const filteredTokens = tokenAddresses.filter((token) => token !== "");
@@ -151,7 +178,9 @@ function App() {
 
     // token address, token weights, rate providers
     const tokens = filteredTokens;
-    const weights = filteredWeights;
+    const weights = filteredWeights.map((weight) =>
+      ethers.utils.parseUnits((weight / 100).toString(), 18)
+    );
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
     const filteredRateProviders = rateProviders.filter(
       (rateProvider) => rateProvider !== ""
@@ -174,7 +203,7 @@ function App() {
       18
     );
 
-    await ethcontract.create(
+    const transaction = await ethcontract.create(
       poolName,
       poolSymbol,
       tokens,
@@ -185,6 +214,17 @@ function App() {
       salt0x,
       gasoverride
     );
+    const receipt = await transaction.wait();
+    const newPoolContract = receipt.logs[0].address;
+
+    const ethcontract2 = new ethers.Contract(
+      newPoolContract,
+      weightedPool,
+      signer
+    );
+    const getPoolId = await ethcontract2.getPoolId();
+
+    setPoolId(getPoolId);
   }
 
   async function initJoin() {
@@ -192,11 +232,8 @@ function App() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
-    const ethcontract = new ethers.Contract(contractAddress, vaultABI, signer);
+    const ethcontract = new ethers.Contract(vaultAddress, vaultABI, signer);
     const gasoverride = { gasLimit: 6000000 };
-
-    const poolId =
-      "0xd503dd8ae0e4669106167ad1a7df0569a9c1340500020000000000000000073a";
 
     const assets = tokenAddresses.filter((address) => address !== "");
     const amountsIn = tokenAmounts.filter((amount) => amount !== "");
@@ -242,8 +279,6 @@ function App() {
       fromInternalBalance: false,
     };
 
-    console.log(joinRequest);
-
     await ethcontract.joinPool(
       poolId,
       walletAddress,
@@ -252,27 +287,17 @@ function App() {
       gasoverride
     );
   }
-  // const checkAllowance = async (tokenAddress, contractAddress) => {
-  //   const provider = new ethers.providers.Web3Provider(window.ethereum);
-  //   const tokenContract = new ethers.Contract(tokenAddress, ERC20, provider);
-  //   const approvedAmount = await tokenContract.allowance(
-  //     walletAddress,
-  //     contractAddress
-  //   );
-  //   return approvedAmount.gte(amountToApprove);
-  // };
 
-  const handleApprovalClick = async (tokenAddress, contractAddress, index) => {
-    // Token needs to be approved, call approve() method on token contract
+  const handleApprovalClick = async (tokenAddress, vaultAddress, index) => {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = await provider.getSigner();
     const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
     const gasLimit = 6000000;
-    const tx = await tokenContract.approve(contractAddress, amountToApprove, {
+    const amountToApprove = ethers.constants.MaxUint256;
+    const tx = await tokenContract.approve(vaultAddress, amountToApprove, {
       gasLimit,
     });
     await tx.wait();
-    // Update state
     setApprovedTokens((prevState) => {
       const newState = [...prevState];
       newState[index] = true;
@@ -337,7 +362,11 @@ function App() {
             {buttonText}
           </Button>
         </p>
-        <p align="right">Wallet Address: {walletAddress}</p>
+        <p align="right">
+          Wallet Address: {walletAddress.substring(0, 6)}...
+          {walletAddress.substring(walletAddress.length - 6)}
+        </p>
+
         <p align="right">Network: {network}</p>
       </header>
       <br />
@@ -468,7 +497,7 @@ function App() {
                     onClick={() =>
                       handleApprovalClick(
                         tokenAddresses[rowIndex],
-                        contractAddress,
+                        vaultAddress,
                         rowIndex
                       )
                     }
@@ -505,9 +534,6 @@ function App() {
         </Container>
       </Box>
       <br />
-      <Button variant="contained" onClick={checkDecimals}>
-        check decimal
-      </Button>
       <br />
       <br />
       <footer className="footer">
