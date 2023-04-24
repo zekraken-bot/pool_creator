@@ -21,9 +21,9 @@ function App() {
   const [walletAddress, setWalletAddress] = useState();
   const [buttonText, setButtonText] = useState("Connect Wallet");
   const [network, setNetwork] = useState();
-  const [poolName, setPoolName] = useState("test");
-  const [poolSymbol, setPoolSymbol] = useState("test");
-  const [swapFeePercentage, setSwapFeePercentage] = useState("0.01");
+  const [poolName, setPoolName] = useState();
+  const [poolSymbol, setPoolSymbol] = useState();
+  const [swapFeePercentage, setSwapFeePercentage] = useState();
   const [ownerAddress, setOwnerAddress] = useState(
     "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
   );
@@ -363,8 +363,11 @@ function App() {
           </Button>
         </p>
         <p align="right">
-          Wallet Address: {walletAddress.substring(0, 6)}...
-          {walletAddress.substring(walletAddress.length - 6)}
+          Wallet Address:{" "}
+          {walletAddress &&
+            `${walletAddress.substring(0, 6)}...${walletAddress.substring(
+              walletAddress.length - 6
+            )}`}
         </p>
 
         <p align="right">Network: {network}</p>
