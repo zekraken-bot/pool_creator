@@ -9,6 +9,7 @@ import { CreateABI } from "./abi/WeightedPoolFactory";
 import { ERC20 } from "./abi/erc20";
 import { vaultABI } from "./abi/BalVault";
 import { weightedPool } from "./abi/WeightedPool";
+import { isAddress } from "ethers/lib/utils";
 
 function App() {
   const FactoryAddress = {
@@ -142,11 +143,20 @@ function App() {
     setApprovedTokens(newApprovedTokens);
   }
 
-  const handleTokenAddressChange = async (event, rowIndex) => {
-    const updatedTokenAddresses = [...tokenAddresses];
-    updatedTokenAddresses[rowIndex] = event.target.value;
-    setTokenAddresses(updatedTokenAddresses);
-    checkApprovedTokens(updatedTokenAddresses);
+  const handleTokenAddressChange = (event, index) => {
+    const newTokenAddresses = [...tokenAddresses];
+    newTokenAddresses[index] = event.target.value;
+    setTokenAddresses(newTokenAddresses);
+
+    const newApprovedTokens = [...approvedTokens];
+    if (!isAddress(event.target.value)) {
+      newApprovedTokens[index] = false;
+    }
+    setApprovedTokens(newApprovedTokens);
+
+    if (isAddress(event.target.value)) {
+      checkApprovedTokens(newTokenAddresses);
+    }
   };
 
   async function createPool() {
