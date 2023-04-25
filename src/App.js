@@ -315,25 +315,26 @@ function App() {
 
   const additionalTextFields = [
     {
-      label: "Pool Name",
+      label: "Pool Name\u00A0\u00A0\u00A0\u00A0",
       id: "poolName",
       value: poolName,
       onChange: setPoolName,
     },
     {
-      label: "Pool Symbol",
+      label: "Pool Symbol\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "poolSymbol",
       value: poolSymbol,
       onChange: setPoolSymbol,
     },
     {
-      label: "Swap Fee Percentage",
+      label:
+        "Swap Fee Percentage\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "swapFeePercentage",
       value: swapFeePercentage,
       onChange: setSwapFeePercentage,
     },
     {
-      label: "Owner Address",
+      label: "Owner Address\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "ownerAddress",
       value: ownerAddress,
       onChange: setOwnerAddress,
@@ -431,7 +432,9 @@ function App() {
               <React.Fragment key={rowIndex}>
                 <Grid item xs={3}>
                   <TextField
-                    label={`Token Address ${rowIndex + 1}`}
+                    label={`Token Address ${
+                      rowIndex + 1
+                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenAddresses[rowIndex]}
                     onChange={(event) =>
                       handleTokenAddressChange(event, rowIndex)
@@ -452,7 +455,9 @@ function App() {
                 </Grid>
                 <Grid item xs={2}>
                   <TextField
-                    label={`Token Weight ${rowIndex + 1}`}
+                    label={`Token Weight ${
+                      rowIndex + 1
+                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenWeights[rowIndex]}
                     onChange={(event) =>
                       handleInputChange(event, rowIndex, setTokenWeights)
@@ -473,7 +478,9 @@ function App() {
                 </Grid>
                 <Grid item xs={3}>
                   <TextField
-                    label={`Rate Provider ${rowIndex + 1}`}
+                    label={`Rate Provider ${
+                      rowIndex + 1
+                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={rateProviders[rowIndex]}
                     onChange={(event) =>
                       handleInputChange(event, rowIndex, setRateProviders)
@@ -512,7 +519,9 @@ function App() {
                 </Grid>
                 <Grid item xs={2}>
                   <TextField
-                    label={`Token Amount ${rowIndex + 1}`}
+                    label={`Token Amount ${
+                      rowIndex + 1
+                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenAmounts[rowIndex]}
                     onChange={(event) =>
                       handleInputChange(event, rowIndex, setTokenAmounts)
