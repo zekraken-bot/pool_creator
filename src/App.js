@@ -48,7 +48,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (typeof window.ethereum !== "undefined") {
+    if (window.ethereum) {
       async function checkWalletonLoad() {
         const accounts = await window.ethereum.request({
           method: "eth_accounts",
