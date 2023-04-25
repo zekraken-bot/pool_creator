@@ -80,8 +80,10 @@ function App() {
       checkWalletonLoad();
     };
 
-    window.ethereum.on("chainChanged", onChainChanged);
-    window.ethereum.on("accountsChanged", onAccountsChanged);
+    if (window.ethereum) {
+      window.ethereum.on("chainChanged", onChainChanged);
+      window.ethereum.on("accountsChanged", onAccountsChanged);
+    }
 
     checkWalletonLoad();
 
