@@ -48,49 +48,51 @@ function App() {
   };
 
   useEffect(() => {
-    async function checkWalletonLoad() {
-      const accounts = await window.ethereum.request({
-        method: "eth_accounts",
-      });
-      if (accounts.length) {
+    if (typeof window.ethereum !== "undefined") {
+      async function checkWalletonLoad() {
+        const accounts = await window.ethereum.request({
+          method: "eth_accounts",
+        });
+        if (accounts.length) {
+          const networkId = await window.ethereum.request({
+            method: "net_version",
+          });
+          setNetwork(getNetworkName(networkId));
+          console.log("Your wallet is connected");
+          const ethaddress = accounts[0];
+          setWalletAddress(ethaddress);
+          setButtonText("Wallet Connected");
+        } else {
+          console.log("Metamask is not connected");
+        }
+      }
+      async function updateNetwork() {
         const networkId = await window.ethereum.request({
           method: "net_version",
         });
         setNetwork(getNetworkName(networkId));
-        console.log("Your wallet is connected");
-        const ethaddress = accounts[0];
-        setWalletAddress(ethaddress);
-        setButtonText("Wallet Connected");
-      } else {
-        console.log("Metamask is not connected");
       }
-    }
-    async function updateNetwork() {
-      const networkId = await window.ethereum.request({
-        method: "net_version",
-      });
-      setNetwork(getNetworkName(networkId));
-    }
 
-    const onChainChanged = () => {
-      updateNetwork();
-    };
+      const onChainChanged = () => {
+        updateNetwork();
+      };
 
-    const onAccountsChanged = () => {
-      checkWalletonLoad();
-    };
+      const onAccountsChanged = () => {
+        checkWalletonLoad();
+      };
 
-    if (window.ethereum) {
       window.ethereum.on("chainChanged", onChainChanged);
       window.ethereum.on("accountsChanged", onAccountsChanged);
+
+      checkWalletonLoad();
+
+      return () => {
+        window.ethereum.removeListener("chainChanged", onChainChanged);
+        window.ethereum.removeListener("accountsChanged", onAccountsChanged);
+      };
+    } else {
+      console.log("Metamask not detected");
     }
-
-    checkWalletonLoad();
-
-    return () => {
-      window.ethereum.removeListener("chainChanged", onChainChanged);
-      window.ethereum.removeListener("accountsChanged", onAccountsChanged);
-    };
   }, []);
 
   function getNetworkName(networkId) {
