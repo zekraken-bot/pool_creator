@@ -172,12 +172,12 @@ function App() {
       CreateABI,
       signer
     );
-    const gasoverride = { gasLimit: 6000000 };
 
+    // only keep non-blank textfields
     const filteredTokens = tokenAddresses.filter((token) => token !== "");
     const filteredWeights = tokenWeights.filter((weight) => weight !== "");
 
-    // token address, token weights, rate providers
+    // token address, token weights, rate providers (default is zero address)
     const tokens = filteredTokens;
     const weights = filteredWeights.map((weight) =>
       ethers.utils.parseUnits((weight / 100).toString(), 18)
@@ -186,23 +186,25 @@ function App() {
     const filteredRateProviders = rateProviders.filter(
       (rateProvider) => rateProvider !== ""
     );
-    const rateProvidersLength = tokens.length;
 
-    // Fill rateProviders with the default value based on the length of tokens array
+    // fill rateProviders with the default value if token address rows are blank
+    const rateProvidersLength = tokens.length;
     for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
       filteredRateProviders.push(defaultRateProvider);
     }
 
+    // convert swap fee to ethers format
+    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
+      swapFeePercentage.toString(),
+      18
+    );
+
+    // create random salt value
     const salt = [...crypto.getRandomValues(new Uint8Array(32))]
       .map((m) => ("0" + m.toString(16)).slice(-2))
       .join("");
 
     const salt0x = "0x" + salt;
-
-    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
-      swapFeePercentage.toString(),
-      18
-    );
 
     const transaction = await ethcontract.create(
       poolName,
@@ -212,8 +214,7 @@ function App() {
       filteredRateProviders,
       swapFeePercentageWithDecimals,
       ownerAddress,
-      salt0x,
-      gasoverride
+      salt0x
     );
     const receipt = await transaction.wait();
     const newPoolContract = receipt.logs[0].address;
@@ -233,7 +234,6 @@ function App() {
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
     const ethcontract = new ethers.Contract(vaultAddress, vaultABI, signer);
-    const gasoverride = { gasLimit: 6000000 };
 
     const assets = tokenAddresses.filter((address) => address !== "");
     const amountsIn = tokenAmounts.filter((amount) => amount !== "");
@@ -283,8 +283,7 @@ function App() {
       poolId,
       walletAddress,
       walletAddress,
-      joinRequest,
-      gasoverride
+      joinRequest
     );
   }
 
@@ -292,11 +291,8 @@ function App() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = await provider.getSigner();
     const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
-    const gasLimit = 6000000;
     const amountToApprove = ethers.constants.MaxUint256;
-    const tx = await tokenContract.approve(vaultAddress, amountToApprove, {
-      gasLimit,
-    });
+    const tx = await tokenContract.approve(vaultAddress, amountToApprove);
     await tx.wait();
     setApprovedTokens((prevState) => {
       const newState = [...prevState];
@@ -338,6 +334,12 @@ function App() {
       id: "ownerAddress",
       value: ownerAddress,
       onChange: setOwnerAddress,
+    },
+    {
+      label: "Pool ID\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
+      id: "poolId",
+      value: poolId,
+      onChange: setPoolId,
     },
   ].map(({ label, id, value, onChange }, index) => (
     <Grid item xs={8} key={index} sx={{ padding: "6px" }}>
