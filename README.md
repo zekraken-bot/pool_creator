@@ -6,6 +6,8 @@ Usage Notes:
 4. token amounts can be entered as the amount you want to supply, 0.001 ETH for example, the correct digits will be applied in the background
 5. the main Balancer chains are supported
 6. contract addresses for pool factories are manually maintained, so check that the latest contracts are being used
+7. the pool id will fill in once the pool creation tx completes
+8. you can input the pool id manually if you need to perform the init join (find pool address on the etherscan contract)
 
 ## Available Scripts
 
