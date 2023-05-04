@@ -1,15 +1,25 @@
 import "./App.css";
-import Typography from "@mui/material/Typography";
 import React, { useEffect, useState } from "react";
+import Typography from "@mui/material/Typography";
+import {
+  Grid,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  Container,
+  Box,
+} from "@mui/material";
+
 import { ethers } from "ethers";
-import { Grid, TextField, Button } from "@mui/material";
-import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
-import { CreateABI } from "./abi/WeightedPoolFactory";
+import { isAddress } from "ethers/lib/utils";
+
+import { CreateWeightedABI } from "./abi/WeightedPoolFactory";
+import { weightedPool } from "./abi/WeightedPool";
+import { CreateComposableABI } from "./abi/ComposableStableFactory";
+import { composablePool } from "./abi/ComposablePool";
 import { ERC20 } from "./abi/erc20";
 import { vaultABI } from "./abi/BalVault";
-import { weightedPool } from "./abi/WeightedPool";
-import { isAddress } from "ethers/lib/utils";
 
 function App() {
   const FactoryAddress = {
@@ -24,20 +34,23 @@ function App() {
   const [poolName, setPoolName] = useState("");
   const [poolSymbol, setPoolSymbol] = useState("");
   const [swapFeePercentage, setSwapFeePercentage] = useState("");
+  const [amplificationFactor, setAmplificationFactor] = useState("");
+  const [ratecacheduration, setRateCacheDuration] = useState("");
   const [ownerAddress, setOwnerAddress] = useState(
     "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
   );
-  const [approvedTokens, setApprovedTokens] = useState(
-    new Array(8).fill(false)
-  );
+  const [poolId, setPoolId] = useState("");
+  const [poolType, setPoolType] = useState("Weighted");
   const vaultAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
-  const rows = new Array(8).fill(null);
-  const [tokenAddresses, setTokenAddresses] = useState(new Array(8).fill(""));
-  const [tokenWeights, setTokenWeights] = useState(new Array(8).fill(""));
-  const [rateProviders, setRateProviders] = useState(new Array(8).fill(""));
-  const [tokenAmounts, setTokenAmounts] = useState(new Array(8).fill(""));
-  const [poolId, setPoolId] = useState("");
+  const [rows, setRows] = useState([]);
+  const [tokenAddresses, setTokenAddresses] = useState([]);
+  const [tokenWeights, setTokenWeights] = useState([]);
+  const [rateProviders, setRateProviders] = useState([]);
+  const [tokenAmounts, setTokenAmounts] = useState([]);
+  const [approvedTokens, setApprovedTokens] = useState([]);
+  const [yieldProtocolFeeExempt, setYieldProtocolFeeExempt] = useState([]);
+
   const handleInputChange = (event, rowIndex, setter) => {
     const newValue = event.target.value;
     setter((prevState) => {
@@ -46,8 +59,22 @@ function App() {
       return newState;
     });
   };
-
   useEffect(() => {
+    if (poolType === "Weighted") {
+      setRows(new Array(8).fill(null));
+      setTokenAddresses(new Array(8).fill(""));
+      setTokenWeights(new Array(8).fill(""));
+      setRateProviders(new Array(8).fill(""));
+      setTokenAmounts(new Array(8).fill(""));
+      setApprovedTokens(new Array(8).fill(false));
+    } else if (poolType === "ComposableStable") {
+      setRows(new Array(5).fill(null));
+      setTokenAddresses(new Array(5).fill(""));
+      setYieldProtocolFeeExempt(new Array(5).fill("false"));
+      setRateProviders(new Array(5).fill(""));
+      setTokenAmounts(new Array(5).fill(""));
+      setApprovedTokens(new Array(5).fill(false));
+    }
     if (window.ethereum) {
       async function checkWalletonLoad() {
         const accounts = await window.ethereum.request({
@@ -93,7 +120,7 @@ function App() {
     } else {
       console.log("Metamask not detected");
     }
-  }, []);
+  }, [poolType]);
 
   function getNetworkName(networkId) {
     switch (networkId) {
@@ -169,7 +196,7 @@ function App() {
     const signer = await provider.getSigner();
     const ethcontract = new ethers.Contract(
       FactoryAddress[network],
-      CreateABI,
+      CreateWeightedABI,
       signer
     );
 
@@ -239,7 +266,7 @@ function App() {
     const amountsIn = tokenAmounts.filter((amount) => amount !== "");
 
     const sortedAmountsIn = [];
-    const multipliedAmounts = []; // new array to hold the multiplied amounts
+    const multipliedAmounts = [];
     for (let i = 0; i < amountsIn.length; i++) {
       const tokenAddress = tokenAddresses[i];
       const amount = amountsIn[i];
@@ -253,9 +280,8 @@ function App() {
 
     const linkedItems = assets.map((asset, index) => [
       asset,
-      multipliedAmounts[index], // use the new array here
+      multipliedAmounts[index],
     ]);
-
     linkedItems.sort((a, b) => {
       if (a[0] < b[0]) return -1;
       if (a[0] > b[0]) return 1;
@@ -329,6 +355,18 @@ function App() {
       value: swapFeePercentage,
       onChange: setSwapFeePercentage,
     },
+    poolType === "ComposableStable" && {
+      label: "Amplification Factor\u00A0\u00A0\u00A0\u00A0\u00A0",
+      id: "amplificationFactor",
+      value: amplificationFactor,
+      onChange: setAmplificationFactor,
+    },
+    poolType === "ComposableStable" && {
+      label: "Rate Cache Duration\u00A0\u00A0\u00A0\u00A0\u00A0",
+      id: "ratecacheduration",
+      value: ratecacheduration,
+      onChange: setRateCacheDuration,
+    },
     {
       label: "Owner Address\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "ownerAddress",
@@ -341,30 +379,51 @@ function App() {
       value: poolId,
       onChange: setPoolId,
     },
-  ].map(({ label, id, value, onChange }, index) => (
-    <Grid item xs={8} key={index} sx={{ padding: "6px" }}>
-      <TextField
-        label={label}
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        InputLabelProps={{ sx: { color: "white" } }}
-        InputProps={{
-          sx: { color: "yellow", width: "325px", fontSize: "12px" },
-        }}
-      />
-    </Grid>
-  ));
+  ]
+    .filter(Boolean)
+    .map(({ label, id, value, onChange }, index) => (
+      <Grid item xs={8} key={index} sx={{ padding: "6px" }}>
+        <TextField
+          label={label}
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          InputLabelProps={{ sx: { color: "white" } }}
+          InputProps={{
+            sx: { color: "yellow", width: "325px", fontSize: "12px" },
+          }}
+        />
+      </Grid>
+    ));
 
   return (
     <>
       <header className="headerContent">
-        <br />
-        <p align="right">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <div>
+            <label style={{ marginLeft: "20px", fontSize: "14px" }}>
+              Pool Type:
+            </label>
+            <br />
+            <Select
+              value={poolType}
+              onChange={(e) => setPoolType(e.target.value)}
+              sx={{ backgroundColor: "lightgray" }}
+            >
+              <MenuItem value="Weighted">Weighted</MenuItem>
+              <MenuItem value="ComposableStable">ComposableStable</MenuItem>
+            </Select>
+          </div>
           <Button variant="contained" onClick={requestAccount}>
             {buttonText}
           </Button>
-        </p>
+        </div>
         <p align="right">
           Wallet Address:{" "}
           {walletAddress &&
@@ -372,7 +431,6 @@ function App() {
               walletAddress.length - 6
             )}`}
         </p>
-
         <p align="right">Network: {network}</p>
       </header>
       <br />
@@ -380,7 +438,7 @@ function App() {
         <Button
           variant="contained"
           onClick={createPool}
-          sx={{ marginRight: 2 }} // Add right margin to the first button
+          sx={{ marginRight: 2 }}
         >
           Create Pool
         </Button>
@@ -411,7 +469,9 @@ function App() {
             </Grid>
             <Grid item xs={2}>
               <Typography variant="h6" sx={{ color: "pink" }}>
-                Token Weights
+                {poolType === "ComposableStable"
+                  ? "Protocol Fee Exempt?"
+                  : "Token Weights"}
               </Typography>
             </Grid>
             <Grid item xs={3}>
@@ -457,12 +517,24 @@ function App() {
                 </Grid>
                 <Grid item xs={2}>
                   <TextField
-                    label={`Token Weight ${
-                      rowIndex + 1
-                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
-                    value={tokenWeights[rowIndex]}
+                    label={
+                      poolType === "Weighted"
+                        ? `Token Weight ${rowIndex + 1}`
+                        : `Yield Protocol Fee Exempt? ${rowIndex + 1}`
+                    }
+                    value={
+                      poolType === "Weighted"
+                        ? tokenWeights[rowIndex]
+                        : yieldProtocolFeeExempt[rowIndex]
+                    }
                     onChange={(event) =>
-                      handleInputChange(event, rowIndex, setTokenWeights)
+                      poolType === "Weighted"
+                        ? handleInputChange(event, rowIndex, setTokenWeights)
+                        : handleInputChange(
+                            event,
+                            rowIndex,
+                            setYieldProtocolFeeExempt
+                          )
                     }
                     fullWidth
                     InputProps={{
