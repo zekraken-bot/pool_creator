@@ -16,8 +16,8 @@ import { isAddress } from "ethers/lib/utils";
 
 import { CreateWeightedABI } from "./abi/WeightedPoolFactory";
 import { weightedPool } from "./abi/WeightedPool";
-import { CreateComposableABI } from "./abi/ComposableStableFactory";
-import { composablePool } from "./abi/ComposablePool";
+//import { CreateComposableABI } from "./abi/ComposableStableFactory";
+//import { composablePool } from "./abi/ComposablePool";
 import { ERC20 } from "./abi/erc20";
 import { vaultABI } from "./abi/BalVault";
 
