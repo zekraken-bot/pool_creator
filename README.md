@@ -4,10 +4,11 @@ Usage Notes:
 2. swap fee can be entered as 0.01 for 1%
 3. token weights can be entered as 80/20, 50/50, etc. the appropriate values will be applied in the background
 4. token amounts can be entered as the amount you want to supply, 0.001 ETH for example, the correct digits will be applied in the background
-5. the main Balancer chains are supported [mainnet, polygon, arbitrum]; you will create a pool for the chain your wallet is connected to (so double check)
-6. contract addresses for pool factories are manually maintained, so check that the latest contracts are being used
-7. the pool id will fill in once the pool creation tx completes
-8. you can input the pool id manually if you need to perform the init join (find pool address on the etherscan contract)
+5. the main Balancer chains are supported [mainnet, polygon, arbitrum]
+6. you will create a pool for the chain your wallet is connected to (so double check)
+7. contract addresses for pool factories are manually maintained, so check that the latest contracts are being used
+8. the pool id will fill in once the pool creation tx completes
+9. you can input the pool id manually if you need to perform the init join (find pool address on the etherscan contract)
 
 ## Available Scripts
 
