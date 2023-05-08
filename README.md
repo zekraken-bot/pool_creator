@@ -1,14 +1,3 @@
-Usage Notes:
-
-1. if a rate provider is not supplied, the 0x0000 address will be used
-2. swap fee can be entered as 0.01 for 1%
-3. token weights can be entered as 80/20, 50/50, etc. the appropriate values will be applied in the background
-4. token amounts can be entered as the amount you want to supply, 0.001 ETH for example, the correct digits will be applied in the background
-5. the main Balancer chains are supported
-6. contract addresses for pool factories are manually maintained, so check that the latest contracts are being used
-7. the pool id will fill in once the pool creation tx completes
-8. you can input the pool id manually if you need to perform the init join (find pool address on the etherscan contract)
-
 ## Available Scripts
 
 In the project directory run the following:
@@ -32,3 +21,9 @@ It correctly bundles React in production mode and optimizes the build for the be
 
 The build is minified and the filenames include the hashes.\
 Your app is ready to be deployed!
+
+Other Usage Notes:
+
+1. the main Balancer chains are supported
+2. contract addresses for pool factories are manually maintained, so check that the latest contracts are being used
+3. the pool id will fill in once the pool creation tx completes

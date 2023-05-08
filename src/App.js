@@ -1,16 +1,7 @@
 import "./App.css";
 import React, { useEffect, useState } from "react";
 import Typography from "@mui/material/Typography";
-import {
-  Grid,
-  TextField,
-  Button,
-  ButtonGroup,
-  Select,
-  MenuItem,
-  Container,
-  Box,
-} from "@mui/material";
+import { Grid, TextField, Button, ButtonGroup, Select, MenuItem, Container, Box } from "@mui/material";
 
 import { ethers } from "ethers";
 import { isAddress } from "ethers/lib/utils";
@@ -43,10 +34,9 @@ function App() {
   const [swapFeePercentage, setSwapFeePercentage] = useState("");
   const [amplificationFactor, setAmplificationFactor] = useState("");
   const [rateCacheDuration, setRateCacheDuration] = useState("");
-  const [ownerAddress, setOwnerAddress] = useState(
-    "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
-  );
+  const [ownerAddress, setOwnerAddress] = useState("0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b");
   const [poolId, setPoolId] = useState("");
+  const [poolContract, setPoolContract] = useState("");
   const [poolType, setPoolType] = useState("Weighted");
   const vaultAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
@@ -179,10 +169,7 @@ function App() {
         continue;
       }
       const tokenContract = new ethers.Contract(tokenAddress, ERC20, provider);
-      const approvedAmount = await tokenContract.allowance(
-        walletAddress,
-        vaultAddress
-      );
+      const approvedAmount = await tokenContract.allowance(walletAddress, vaultAddress);
       newApprovedTokens[i] = approvedAmount.gte(amountToApprove);
     }
     setApprovedTokens(newApprovedTokens);
@@ -192,6 +179,11 @@ function App() {
     const newTokenAddresses = [...tokenAddresses];
     newTokenAddresses[index] = event.target.value;
     setTokenAddresses(newTokenAddresses);
+
+    // set yield field to false by default when a token address is entered
+    const updatedArray = [...yieldProtocolFeeExempt];
+    updatedArray[index] = false;
+    setYieldProtocolFeeExempt(updatedArray);
 
     const newApprovedTokens = [...approvedTokens];
     if (!isAddress(event.target.value)) {
@@ -208,39 +200,26 @@ function App() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
-    const ethcontract = new ethers.Contract(
-      FactoryAddressWeighted[network],
-      CreateWeightedABI,
-      signer
-    );
+    const ethcontract = new ethers.Contract(FactoryAddressWeighted[network], CreateWeightedABI, signer);
 
     // only keep non-blank textfields
     const filteredTokens = tokenAddresses.filter((token) => token !== "");
     const filteredWeights = tokenWeights.filter((weight) => weight !== "");
-    const weights = filteredWeights.map((weight) =>
-      ethers.utils.parseUnits((weight / 100).toString(), 18)
-    );
+    const weights = filteredWeights.map((weight) => ethers.utils.parseUnits((weight / 100).toString(), 18));
 
     // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    const filteredRateProviders = rateProviders.filter(
-      (rateProvider) => rateProvider !== ""
-    );
+    const filteredRateProviders = rateProviders.filter((rateProvider) => rateProvider !== "");
     const rateProvidersLength = filteredTokens.length;
     for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
       filteredRateProviders.push(defaultRateProvider);
     }
 
     // convert swap fee to ethers format
-    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
-      swapFeePercentage.toString(),
-      18
-    );
+    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(swapFeePercentage.toString(), 18);
 
     // create random salt value
-    const salt = [...crypto.getRandomValues(new Uint8Array(32))]
-      .map((m) => ("0" + m.toString(16)).slice(-2))
-      .join("");
+    const salt = [...crypto.getRandomValues(new Uint8Array(32))].map((m) => ("0" + m.toString(16)).slice(-2)).join("");
 
     const salt0x = "0x" + salt;
 
@@ -257,11 +236,7 @@ function App() {
     const receipt = await transaction.wait();
     const newPoolContract = receipt.logs[0].address;
 
-    const ethcontract2 = new ethers.Contract(
-      newPoolContract,
-      weightedPool,
-      signer
-    );
+    const ethcontract2 = new ethers.Contract(newPoolContract, weightedPool, signer);
     const getPoolId = await ethcontract2.getPoolId();
 
     setPoolId(getPoolId);
@@ -271,23 +246,15 @@ function App() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
-    const ethcontract = new ethers.Contract(
-      FactoryAddressComposable[network],
-      CreateComposableABI,
-      signer
-    );
+    const ethcontract = new ethers.Contract(FactoryAddressComposable[network], CreateComposableABI, signer);
 
     // only keep non-blank textfields
     const filteredTokens = tokenAddresses.filter((token) => token !== "");
-    const filteredProtocolFeeExempt = yieldProtocolFeeExempt.filter(
-      (feebool) => feebool !== ""
-    );
+    const filteredProtocolFeeExempt = yieldProtocolFeeExempt.filter((feebool) => feebool !== "");
 
     // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    const filteredRateProviders = rateProviders.filter(
-      (rateProvider) => rateProvider !== ""
-    );
+    const filteredRateProviders = rateProviders.filter((rateProvider) => rateProvider !== "");
     const rateProvidersLength = filteredTokens.length;
     for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
       filteredRateProviders.push(defaultRateProvider);
@@ -300,15 +267,10 @@ function App() {
     );
 
     // convert swap fee to ethers format
-    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
-      swapFeePercentage.toString(),
-      18
-    );
+    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(swapFeePercentage.toString(), 18);
 
     // create random salt value
-    const salt = [...crypto.getRandomValues(new Uint8Array(32))]
-      .map((m) => ("0" + m.toString(16)).slice(-2))
-      .join("");
+    const salt = [...crypto.getRandomValues(new Uint8Array(32))].map((m) => ("0" + m.toString(16)).slice(-2)).join("");
 
     const salt0x = "0x" + salt;
 
@@ -326,18 +288,15 @@ function App() {
     );
     const receipt = await transaction.wait();
     const newPoolContract = receipt.logs[0].address;
+    setPoolContract(newPoolContract);
 
-    const ethcontract2 = new ethers.Contract(
-      newPoolContract,
-      composablePool,
-      signer
-    );
+    const ethcontract2 = new ethers.Contract(newPoolContract, composablePool, signer);
     const getPoolId = await ethcontract2.getPoolId();
 
     setPoolId(getPoolId);
   }
 
-  async function initJoin() {
+  async function initJoinWeighted() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
@@ -349,7 +308,7 @@ function App() {
     const sortedAmountsIn = [];
     const multipliedAmounts = [];
     for (let i = 0; i < amountsIn.length; i++) {
-      const tokenAddress = tokenAddresses[i];
+      const tokenAddress = assets[i];
       const amount = amountsIn[i];
       if (tokenAddress && amount) {
         const decimals = await checkDecimals(tokenAddress);
@@ -359,10 +318,7 @@ function App() {
       }
     }
 
-    const linkedItems = assets.map((asset, index) => [
-      asset,
-      multipliedAmounts[index],
-    ]);
+    const linkedItems = assets.map((asset, index) => [asset, multipliedAmounts[index]]);
     linkedItems.sort((a, b) => {
       if (a[0] < b[0]) return -1;
       if (a[0] > b[0]) return 1;
@@ -374,10 +330,7 @@ function App() {
 
     const JOIN_KIND_INIT = 0;
 
-    const userData = ethers.utils.defaultAbiCoder.encode(
-      ["uint256", "uint256[]"],
-      [JOIN_KIND_INIT, sortedAmountsIn2]
-    );
+    const userData = ethers.utils.defaultAbiCoder.encode(["uint256", "uint256[]"], [JOIN_KIND_INIT, sortedAmountsIn2]);
 
     const joinRequest = {
       assets: sortedAssets,
@@ -386,12 +339,54 @@ function App() {
       fromInternalBalance: false,
     };
 
-    await ethcontract.joinPool(
-      poolId,
-      walletAddress,
-      walletAddress,
-      joinRequest
-    );
+    await ethcontract.joinPool(poolId, walletAddress, walletAddress, joinRequest);
+  }
+
+  async function initJoinComposable() {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const ethcontract = new ethers.Contract(vaultAddress, vaultABI, signer);
+    const poolBPTAmt = "5192296858534827.628530496329";
+
+    const assets = tokenAddresses.filter((address) => address !== "").concat(poolContract);
+    const amountsIn = tokenAmounts.filter((amount) => amount !== "").concat(poolBPTAmt);
+
+    const sortedAmountsIn = [];
+    const multipliedAmounts = [];
+    for (let i = 0; i < amountsIn.length; i++) {
+      const tokenAddress = assets[i];
+      const amount = amountsIn[i];
+      if (tokenAddress && amount) {
+        const decimals = await checkDecimals(tokenAddress);
+        const adjustedAmount = ethers.utils.parseUnits(amount, decimals);
+        sortedAmountsIn.push(adjustedAmount.toString());
+        multipliedAmounts.push(adjustedAmount);
+      }
+    }
+
+    const linkedItems = assets.map((asset, index) => [asset, multipliedAmounts[index]]);
+    linkedItems.sort((a, b) => {
+      if (a[0] < b[0]) return -1;
+      if (a[0] > b[0]) return 1;
+      return 0;
+    });
+
+    const sortedAssets = linkedItems.map((item) => item[0]);
+    const sortedAmountsIn2 = linkedItems.map((item) => item[1].toString());
+
+    const JOIN_KIND_INIT = 0;
+
+    const userData = ethers.utils.defaultAbiCoder.encode(["uint256", "uint256[]"], [JOIN_KIND_INIT, sortedAmountsIn2]);
+
+    const joinRequest = {
+      assets: sortedAssets,
+      maxAmountsIn: sortedAmountsIn2,
+      userData,
+      fromInternalBalance: false,
+    };
+
+    await ethcontract.joinPool(poolId, walletAddress, walletAddress, joinRequest);
   }
 
   const handleApprovalClick = async (tokenAddress, vaultAddress, index) => {
@@ -430,20 +425,19 @@ function App() {
       onChange: setPoolSymbol,
     },
     {
-      label:
-        "Swap Fee Percentage\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
+      label: "Swap Fee Percentage\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "swapFeePercentage",
       value: swapFeePercentage,
       onChange: setSwapFeePercentage,
     },
     poolType === "ComposableStable" && {
-      label: "Amplification Factor\u00A0\u00A0\u00A0\u00A0\u00A0",
+      label: "Amplification Factor\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "amplificationFactor",
       value: amplificationFactor,
       onChange: setAmplificationFactor,
     },
     poolType === "ComposableStable" && {
-      label: "Rate Cache Duration\u00A0\u00A0\u00A0\u00A0\u00A0",
+      label: "Rate Cache Duration\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "rateCacheDuration",
       value: rateCacheDuration,
       onChange: setRateCacheDuration,
@@ -459,6 +453,12 @@ function App() {
       id: "poolId",
       value: poolId,
       onChange: setPoolId,
+    },
+    poolType === "ComposableStable" && {
+      label: "Pool Contract\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
+      id: "poolId",
+      value: poolContract,
+      onChange: setPoolContract,
     },
   ]
     .filter(Boolean)
@@ -488,9 +488,7 @@ function App() {
           }}
         >
           <div>
-            <label style={{ marginLeft: "20px", fontSize: "14px" }}>
-              Pool Type:
-            </label>
+            <label style={{ marginLeft: "20px", fontSize: "14px" }}>Pool Type:</label>
             <br />
             <Select
               value={poolType}
@@ -507,28 +505,58 @@ function App() {
         </div>
         <p align="right">
           Wallet Address:{" "}
-          {walletAddress &&
-            `${walletAddress.substring(0, 6)}...${walletAddress.substring(
-              walletAddress.length - 6
-            )}`}
+          {walletAddress && `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 6)}`}
         </p>
         <p align="right">Network: {network}</p>
       </header>
       <br />
-      <div className="mainContent">
-        <Button
-          variant="contained"
-          onClick={
-            poolType === "Weighted" ? createPoolWeighted : createPoolComposable
-          }
-          sx={{ marginRight: 2 }}
-        >
-          Create Pool
-        </Button>
-        <Button variant="contained" onClick={initJoin}>
-          Join Pool
-        </Button>
+      <div className="mainContent" style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{ alignSelf: "flex-start" }}>
+          <ul style={{ textAlign: "left" }}>
+            {poolType === "Weighted" ? (
+              <>
+                <strong>
+                  <u>Usage Tips for Weighted:</u>
+                </strong>
+                <li>swap fee percentage should be entered as 0.01 for 1%</li>
+                <li>token weights should be entered as 80 for 80% or 50 for 50%</li>
+                <li>if a rate provider is not supplied, the 0x0000 address will be used</li>
+                <li>token amounts should be entered in acutal amounts, 0.001 ETH for example</li>
+                <li>
+                  pool id field available to perform the init join separately (find pool id on the etherscan contract)
+                </li>
+              </>
+            ) : (
+              <>
+                <strong>
+                  <u>Usage Tips for ComposableStable:</u>
+                </strong>
+                <li>swap fee percentage should be entered as 0.01 for 1%</li>
+                <li>protocol fee exempt is set to false by default</li>
+                <li>if a rate provider is not supplied, the 0x0000 address will be used</li>
+                <li>token amounts should be entered in acutal amounts, 0.001 ETH for example</li>
+                <li>
+                  pool id and pool contract fields available to perform the init join separately (find pool id on the
+                  etherscan contract)
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <Button
+            variant="contained"
+            onClick={poolType === "Weighted" ? createPoolWeighted : createPoolComposable}
+            sx={{ marginRight: 2 }}
+          >
+            Create Pool
+          </Button>
+          <Button variant="contained" onClick={poolType === "Weighted" ? initJoinWeighted : initJoinComposable}>
+            Join Pool
+          </Button>
+        </div>
       </div>
+
       <br />
       <Grid container spacing={1} justifyContent="center">
         <Grid item xs={3}>
@@ -552,9 +580,7 @@ function App() {
             </Grid>
             <Grid item xs={2}>
               <Typography variant="h6" sx={{ color: "pink" }}>
-                {poolType === "ComposableStable"
-                  ? "Protocol Fee Exempt?"
-                  : "Token Weights"}
+                {poolType === "ComposableStable" ? "Protocol Fee Exempt?" : "Token Weights"}
               </Typography>
             </Grid>
             <Grid item xs={3}>
@@ -577,13 +603,9 @@ function App() {
               <React.Fragment key={rowIndex}>
                 <Grid item xs={3}>
                   <TextField
-                    label={`Token Address ${
-                      rowIndex + 1
-                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
+                    label={`Token Address ${rowIndex + 1}\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenAddresses[rowIndex]}
-                    onChange={(event) =>
-                      handleTokenAddressChange(event, rowIndex)
-                    }
+                    onChange={(event) => handleTokenAddressChange(event, rowIndex)}
                     fullWidth
                     InputProps={{
                       sx: {
@@ -603,9 +625,7 @@ function App() {
                     <TextField
                       label={`Token Weight ${rowIndex + 1}`}
                       value={tokenWeights[rowIndex]}
-                      onChange={(event) =>
-                        handleInputChange(event, rowIndex, setTokenWeights)
-                      }
+                      onChange={(event) => handleInputChange(event, rowIndex, setTokenWeights)}
                       fullWidth
                       InputProps={{
                         sx: {
@@ -627,34 +647,14 @@ function App() {
                       aria-label={`Yield Protocol Fee Exempt? ${rowIndex + 1}`}
                     >
                       <Button
-                        onClick={() =>
-                          handleButtonClick(
-                            rowIndex,
-                            setYieldProtocolFeeExempt,
-                            true
-                          )
-                        }
-                        variant={
-                          yieldProtocolFeeExempt[rowIndex]
-                            ? "contained"
-                            : "outlined"
-                        }
+                        onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, true)}
+                        variant={yieldProtocolFeeExempt[rowIndex] ? "contained" : "outlined"}
                       >
                         True
                       </Button>
                       <Button
-                        onClick={() =>
-                          handleButtonClick(
-                            rowIndex,
-                            setYieldProtocolFeeExempt,
-                            false
-                          )
-                        }
-                        variant={
-                          yieldProtocolFeeExempt[rowIndex]
-                            ? "outlined"
-                            : "contained"
-                        }
+                        onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, false)}
+                        variant={yieldProtocolFeeExempt[rowIndex] ? "outlined" : "contained"}
                       >
                         False
                       </Button>
@@ -664,13 +664,9 @@ function App() {
 
                 <Grid item xs={3}>
                   <TextField
-                    label={`Rate Provider ${
-                      rowIndex + 1
-                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
+                    label={`Rate Provider ${rowIndex + 1}\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={rateProviders[rowIndex]}
-                    onChange={(event) =>
-                      handleInputChange(event, rowIndex, setRateProviders)
-                    }
+                    onChange={(event) => handleInputChange(event, rowIndex, setRateProviders)}
                     fullWidth
                     InputProps={{
                       sx: {
@@ -690,28 +686,16 @@ function App() {
                     variant="contained"
                     color="primary"
                     disabled={approvedTokens[rowIndex]}
-                    onClick={() =>
-                      handleApprovalClick(
-                        tokenAddresses[rowIndex],
-                        vaultAddress,
-                        rowIndex
-                      )
-                    }
+                    onClick={() => handleApprovalClick(tokenAddresses[rowIndex], vaultAddress, rowIndex)}
                   >
-                    {approvedTokens[rowIndex]
-                      ? "Token Approved"
-                      : `Approve Token ${rowIndex + 1}`}
+                    {approvedTokens[rowIndex] ? "Token Approved" : `Approve Token ${rowIndex + 1}`}
                   </Button>
                 </Grid>
                 <Grid item xs={2}>
                   <TextField
-                    label={`Token Amount ${
-                      rowIndex + 1
-                    }\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
+                    label={`Token Amount ${rowIndex + 1}\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenAmounts[rowIndex]}
-                    onChange={(event) =>
-                      handleInputChange(event, rowIndex, setTokenAmounts)
-                    }
+                    onChange={(event) => handleInputChange(event, rowIndex, setTokenAmounts)}
                     fullWidth
                     InputProps={{
                       sx: {
@@ -736,19 +720,11 @@ function App() {
       <br />
       <footer className="footer">
         open source project created by&nbsp;
-        <a
-          href="https://twitter.com/The_Krake"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href="https://twitter.com/The_Krake" target="_blank" rel="noopener noreferrer">
           @ZeKraken
         </a>
         &nbsp;:&nbsp;
-        <a
-          href="https://github.com/zekraken-bot/pool_creator"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href="https://github.com/zekraken-bot/pool_creator" target="_blank" rel="noopener noreferrer">
           github link
         </a>
       </footer>
