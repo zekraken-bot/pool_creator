@@ -5,6 +5,7 @@ import {
   Grid,
   TextField,
   Button,
+  ButtonGroup,
   Select,
   MenuItem,
   Container,
@@ -16,17 +17,23 @@ import { isAddress } from "ethers/lib/utils";
 
 import { CreateWeightedABI } from "./abi/WeightedPoolFactory";
 import { weightedPool } from "./abi/WeightedPool";
-//import { CreateComposableABI } from "./abi/ComposableStableFactory";
-//import { composablePool } from "./abi/ComposablePool";
+import { CreateComposableABI } from "./abi/ComposableStableFactory";
+import { composablePool } from "./abi/ComposablePool";
 import { ERC20 } from "./abi/erc20";
 import { vaultABI } from "./abi/BalVault";
 
 function App() {
-  const FactoryAddress = {
+  const FactoryAddressWeighted = {
     Goerli: "0x230a59f4d9adc147480f03b0d3fffecd56c3289a",
     Mainnet: "0x897888115Ada5773E02aA29F775430BFB5F34c51",
     Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
     Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
+  };
+  const FactoryAddressComposable = {
+    Goerli: "0x1802953277FD955f9a254B80Aa0582f193cF1d77",
+    Mainnet: "0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76",
+    Polygon: "0x6Ab5549bBd766A43aFb687776ad8466F8b42f777",
+    Arbitrum: "0x2498A2B0d6462d2260EAC50aE1C3e03F4829BA95",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -35,7 +42,7 @@ function App() {
   const [poolSymbol, setPoolSymbol] = useState("");
   const [swapFeePercentage, setSwapFeePercentage] = useState("");
   const [amplificationFactor, setAmplificationFactor] = useState("");
-  const [ratecacheduration, setRateCacheDuration] = useState("");
+  const [rateCacheDuration, setRateCacheDuration] = useState("");
   const [ownerAddress, setOwnerAddress] = useState(
     "0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b"
   );
@@ -59,6 +66,13 @@ function App() {
       return newState;
     });
   };
+
+  const handleButtonClick = (index, setter, value) => {
+    const updatedArray = [...yieldProtocolFeeExempt];
+    updatedArray[index] = value;
+    setter(updatedArray);
+  };
+
   useEffect(() => {
     if (poolType === "Weighted") {
       setRows(new Array(8).fill(null));
@@ -70,7 +84,7 @@ function App() {
     } else if (poolType === "ComposableStable") {
       setRows(new Array(5).fill(null));
       setTokenAddresses(new Array(5).fill(""));
-      setYieldProtocolFeeExempt(new Array(5).fill("false"));
+      setYieldProtocolFeeExempt(new Array(5).fill(""));
       setRateProviders(new Array(5).fill(""));
       setTokenAmounts(new Array(5).fill(""));
       setApprovedTokens(new Array(5).fill(false));
@@ -190,12 +204,12 @@ function App() {
     }
   };
 
-  async function createPool() {
+  async function createPoolWeighted() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
     const ethcontract = new ethers.Contract(
-      FactoryAddress[network],
+      FactoryAddressWeighted[network],
       CreateWeightedABI,
       signer
     );
@@ -203,19 +217,16 @@ function App() {
     // only keep non-blank textfields
     const filteredTokens = tokenAddresses.filter((token) => token !== "");
     const filteredWeights = tokenWeights.filter((weight) => weight !== "");
-
-    // token address, token weights, rate providers (default is zero address)
-    const tokens = filteredTokens;
     const weights = filteredWeights.map((weight) =>
       ethers.utils.parseUnits((weight / 100).toString(), 18)
     );
+
+    // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
     const filteredRateProviders = rateProviders.filter(
       (rateProvider) => rateProvider !== ""
     );
-
-    // fill rateProviders with the default value if token address rows are blank
-    const rateProvidersLength = tokens.length;
+    const rateProvidersLength = filteredTokens.length;
     for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
       filteredRateProviders.push(defaultRateProvider);
     }
@@ -236,7 +247,7 @@ function App() {
     const transaction = await ethcontract.create(
       poolName,
       poolSymbol,
-      tokens,
+      filteredTokens,
       weights,
       filteredRateProviders,
       swapFeePercentageWithDecimals,
@@ -249,6 +260,76 @@ function App() {
     const ethcontract2 = new ethers.Contract(
       newPoolContract,
       weightedPool,
+      signer
+    );
+    const getPoolId = await ethcontract2.getPoolId();
+
+    setPoolId(getPoolId);
+  }
+
+  async function createPoolComposable() {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const ethcontract = new ethers.Contract(
+      FactoryAddressComposable[network],
+      CreateComposableABI,
+      signer
+    );
+
+    // only keep non-blank textfields
+    const filteredTokens = tokenAddresses.filter((token) => token !== "");
+    const filteredProtocolFeeExempt = yieldProtocolFeeExempt.filter(
+      (feebool) => feebool !== ""
+    );
+
+    // fill rateProviders with the default value if token address rows are blank
+    const defaultRateProvider = "0x0000000000000000000000000000000000000000";
+    const filteredRateProviders = rateProviders.filter(
+      (rateProvider) => rateProvider !== ""
+    );
+    const rateProvidersLength = filteredTokens.length;
+    for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
+      filteredRateProviders.push(defaultRateProvider);
+    }
+
+    // add rate durations for every row there is a token address
+    const rateCacheDurations = Array.from(
+      { length: tokenAddresses.filter((address) => address !== "").length },
+      (_, index) => rateCacheDuration
+    );
+
+    // convert swap fee to ethers format
+    const swapFeePercentageWithDecimals = ethers.utils.parseUnits(
+      swapFeePercentage.toString(),
+      18
+    );
+
+    // create random salt value
+    const salt = [...crypto.getRandomValues(new Uint8Array(32))]
+      .map((m) => ("0" + m.toString(16)).slice(-2))
+      .join("");
+
+    const salt0x = "0x" + salt;
+
+    const transaction = await ethcontract.create(
+      poolName,
+      poolSymbol,
+      filteredTokens,
+      amplificationFactor,
+      filteredRateProviders,
+      rateCacheDurations,
+      filteredProtocolFeeExempt,
+      swapFeePercentageWithDecimals,
+      ownerAddress,
+      salt0x
+    );
+    const receipt = await transaction.wait();
+    const newPoolContract = receipt.logs[0].address;
+
+    const ethcontract2 = new ethers.Contract(
+      newPoolContract,
+      composablePool,
       signer
     );
     const getPoolId = await ethcontract2.getPoolId();
@@ -363,8 +444,8 @@ function App() {
     },
     poolType === "ComposableStable" && {
       label: "Rate Cache Duration\u00A0\u00A0\u00A0\u00A0\u00A0",
-      id: "ratecacheduration",
-      value: ratecacheduration,
+      id: "rateCacheDuration",
+      value: rateCacheDuration,
       onChange: setRateCacheDuration,
     },
     {
@@ -437,7 +518,9 @@ function App() {
       <div className="mainContent">
         <Button
           variant="contained"
-          onClick={createPool}
+          onClick={
+            poolType === "Weighted" ? createPoolWeighted : createPoolComposable
+          }
           sx={{ marginRight: 2 }}
         >
           Create Pool
@@ -516,40 +599,69 @@ function App() {
                   />
                 </Grid>
                 <Grid item xs={2}>
-                  <TextField
-                    label={
-                      poolType === "Weighted"
-                        ? `Token Weight ${rowIndex + 1}`
-                        : `Yield Protocol Fee Exempt? ${rowIndex + 1}`
-                    }
-                    value={
-                      poolType === "Weighted"
-                        ? tokenWeights[rowIndex]
-                        : yieldProtocolFeeExempt[rowIndex]
-                    }
-                    onChange={(event) =>
-                      poolType === "Weighted"
-                        ? handleInputChange(event, rowIndex, setTokenWeights)
-                        : handleInputChange(
-                            event,
+                  {poolType === "Weighted" ? (
+                    <TextField
+                      label={`Token Weight ${rowIndex + 1}`}
+                      value={tokenWeights[rowIndex]}
+                      onChange={(event) =>
+                        handleInputChange(event, rowIndex, setTokenWeights)
+                      }
+                      fullWidth
+                      InputProps={{
+                        sx: {
+                          color: "yellow",
+                          fontSize: "12px",
+                        },
+                      }}
+                      InputLabelProps={{
+                        sx: {
+                          color: "white",
+                        },
+                      }}
+                    />
+                  ) : (
+                    <ButtonGroup
+                      color="primary"
+                      variant="contained"
+                      fullWidth
+                      aria-label={`Yield Protocol Fee Exempt? ${rowIndex + 1}`}
+                    >
+                      <Button
+                        onClick={() =>
+                          handleButtonClick(
                             rowIndex,
-                            setYieldProtocolFeeExempt
+                            setYieldProtocolFeeExempt,
+                            true
                           )
-                    }
-                    fullWidth
-                    InputProps={{
-                      sx: {
-                        color: "yellow",
-                        fontSize: "12px",
-                      },
-                    }}
-                    InputLabelProps={{
-                      sx: {
-                        color: "white",
-                      },
-                    }}
-                  />
+                        }
+                        variant={
+                          yieldProtocolFeeExempt[rowIndex]
+                            ? "contained"
+                            : "outlined"
+                        }
+                      >
+                        True
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          handleButtonClick(
+                            rowIndex,
+                            setYieldProtocolFeeExempt,
+                            false
+                          )
+                        }
+                        variant={
+                          yieldProtocolFeeExempt[rowIndex]
+                            ? "outlined"
+                            : "contained"
+                        }
+                      >
+                        False
+                      </Button>
+                    </ButtonGroup>
+                  )}
                 </Grid>
+
                 <Grid item xs={3}>
                   <TextField
                     label={`Rate Provider ${
