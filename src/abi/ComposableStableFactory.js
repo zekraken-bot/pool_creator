@@ -1,4 +1,4 @@
-export const CreateWeightedABI = [
+export const CreateComposableABI = [
   {
     inputs: [
       {
@@ -62,14 +62,24 @@ export const CreateWeightedABI = [
         type: "address[]",
       },
       {
-        internalType: "uint256[]",
-        name: "normalizedWeights",
-        type: "uint256[]",
+        internalType: "uint256",
+        name: "amplificationParameter",
+        type: "uint256",
       },
       {
         internalType: "contract IRateProvider[]",
         name: "rateProviders",
         type: "address[]",
+      },
+      {
+        internalType: "uint256[]",
+        name: "tokenRateCacheDurations",
+        type: "uint256[]",
+      },
+      {
+        internalType: "bool[]",
+        name: "exemptFromYieldProtocolFeeFlags",
+        type: "bool[]",
       },
       {
         internalType: "uint256",
@@ -90,7 +100,7 @@ export const CreateWeightedABI = [
     name: "create",
     outputs: [
       {
-        internalType: "address",
+        internalType: "contract ComposableStablePool",
         name: "",
         type: "address",
       },
