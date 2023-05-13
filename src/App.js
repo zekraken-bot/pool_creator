@@ -19,12 +19,14 @@ function App() {
     Mainnet: "0x897888115Ada5773E02aA29F775430BFB5F34c51",
     Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
     Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
+    Gnosis: "0x6CaD2ea22BFA7F4C14Aae92E47F510Cd5C509bc7",
   };
   const FactoryAddressComposable = {
     Goerli: "0x1802953277FD955f9a254B80Aa0582f193cF1d77",
     Mainnet: "0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76",
     Polygon: "0x6Ab5549bBd766A43aFb687776ad8466F8b42f777",
     Arbitrum: "0x2498A2B0d6462d2260EAC50aE1C3e03F4829BA95",
+    Gnosis: "0xD87F44Df0159DC78029AB9CA7D7e57E7249F5ACD",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -136,6 +138,8 @@ function App() {
         return "Polygon";
       case "42161":
         return "Arbitrum";
+      case "100":
+        return "Gnosis";
       default:
         return "Unknown network";
     }
@@ -223,16 +227,7 @@ function App() {
 
     const salt0x = "0x" + salt;
 
-    const transaction = await ethcontract.create(
-      poolName,
-      poolSymbol,
-      filteredTokens,
-      weights,
-      filteredRateProviders,
-      swapFeePercentageWithDecimals,
-      ownerAddress,
-      salt0x
-    );
+    const transaction = await ethcontract.create(poolName, poolSymbol, filteredTokens, weights, filteredRateProviders, swapFeePercentageWithDecimals, ownerAddress, salt0x);
     const receipt = await transaction.wait();
     const newPoolContract = receipt.logs[0].address;
 
@@ -261,10 +256,7 @@ function App() {
     }
 
     // add rate durations for every row there is a token address
-    const rateCacheDurations = Array.from(
-      { length: tokenAddresses.filter((address) => address !== "").length },
-      (_, index) => rateCacheDuration
-    );
+    const rateCacheDurations = Array.from({ length: tokenAddresses.filter((address) => address !== "").length }, (_, index) => rateCacheDuration);
 
     // convert swap fee to ethers format
     const swapFeePercentageWithDecimals = ethers.utils.parseUnits(swapFeePercentage.toString(), 18);
@@ -490,11 +482,7 @@ function App() {
           <div>
             <label style={{ marginLeft: "20px", fontSize: "14px" }}>Pool Type:</label>
             <br />
-            <Select
-              value={poolType}
-              onChange={(e) => setPoolType(e.target.value)}
-              sx={{ backgroundColor: "lightgray" }}
-            >
+            <Select value={poolType} onChange={(e) => setPoolType(e.target.value)} sx={{ backgroundColor: "lightgray" }}>
               <MenuItem value="Weighted">Weighted</MenuItem>
               <MenuItem value="ComposableStable">ComposableStable</MenuItem>
             </Select>
@@ -503,10 +491,7 @@ function App() {
             {buttonText}
           </Button>
         </div>
-        <p align="right">
-          Wallet Address:{" "}
-          {walletAddress && `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 6)}`}
-        </p>
+        <p align="right">Wallet Address: {walletAddress && `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 6)}`}</p>
         <p align="right">Network: {network}</p>
       </header>
       <br />
@@ -522,9 +507,7 @@ function App() {
                 <li>token weights should be entered as 80 for 80% or 50 for 50%</li>
                 <li>if a rate provider is not supplied, the 0x0000 address will be used</li>
                 <li>token amounts should be entered in acutal amounts, 0.001 ETH for example</li>
-                <li>
-                  pool id field available to perform the init join separately (find pool id on the etherscan contract)
-                </li>
+                <li>pool id field available to perform the init join separately (find pool id on the etherscan contract)</li>
               </>
             ) : (
               <>
@@ -535,20 +518,13 @@ function App() {
                 <li>protocol fee exempt is set to false by default</li>
                 <li>if a rate provider is not supplied, the 0x0000 address will be used</li>
                 <li>token amounts should be entered in acutal amounts, 0.001 ETH for example</li>
-                <li>
-                  pool id and pool contract fields available to perform the init join separately (find pool id on the
-                  etherscan contract)
-                </li>
+                <li>pool id and pool contract fields available to perform the init join separately (find pool id on the etherscan contract)</li>
               </>
             )}
           </ul>
         </div>
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <Button
-            variant="contained"
-            onClick={poolType === "Weighted" ? createPoolWeighted : createPoolComposable}
-            sx={{ marginRight: 2 }}
-          >
+          <Button variant="contained" onClick={poolType === "Weighted" ? createPoolWeighted : createPoolComposable} sx={{ marginRight: 2 }}>
             Create Pool
           </Button>
           <Button variant="contained" onClick={poolType === "Weighted" ? initJoinWeighted : initJoinComposable}>
@@ -640,22 +616,11 @@ function App() {
                       }}
                     />
                   ) : (
-                    <ButtonGroup
-                      color="primary"
-                      variant="contained"
-                      fullWidth
-                      aria-label={`Yield Protocol Fee Exempt? ${rowIndex + 1}`}
-                    >
-                      <Button
-                        onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, true)}
-                        variant={yieldProtocolFeeExempt[rowIndex] ? "contained" : "outlined"}
-                      >
+                    <ButtonGroup color="primary" variant="contained" fullWidth aria-label={`Yield Protocol Fee Exempt? ${rowIndex + 1}`}>
+                      <Button onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, true)} variant={yieldProtocolFeeExempt[rowIndex] ? "contained" : "outlined"}>
                         True
                       </Button>
-                      <Button
-                        onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, false)}
-                        variant={yieldProtocolFeeExempt[rowIndex] ? "outlined" : "contained"}
-                      >
+                      <Button onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, false)} variant={yieldProtocolFeeExempt[rowIndex] ? "outlined" : "contained"}>
                         False
                       </Button>
                     </ButtonGroup>
