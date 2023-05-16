@@ -4,7 +4,6 @@ import Typography from "@mui/material/Typography";
 import { Grid, TextField, Button, ButtonGroup, Select, MenuItem, Container, Box } from "@mui/material";
 
 import { ethers } from "ethers";
-import { isAddress } from "ethers/lib/utils";
 
 import { CreateWeightedABI } from "./abi/WeightedPoolFactory";
 import { weightedPool } from "./abi/WeightedPool";
@@ -162,43 +161,52 @@ function App() {
     }
   }
 
-  async function checkApprovedTokens(updatedTokenAddresses) {
+  async function checkApprovedTokens(updatedTokenAddresses, updatedTokenAmounts) {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const newApprovedTokens = [...approvedTokens];
-    const amountToApprove = ethers.constants.MaxUint256;
     for (let i = 0; i < updatedTokenAddresses.length; i++) {
       const tokenAddress = updatedTokenAddresses[i];
       if (!tokenAddress) {
         newApprovedTokens[i] = false;
         continue;
       }
+
+      const decimals = await checkDecimals(tokenAddress); // Get the number of decimals for the token
+
+      const tokenAmount = updatedTokenAmounts[i];
+      if (!tokenAmount) {
+        newApprovedTokens[i] = false;
+        continue;
+      }
+
+      const requiredAmount = ethers.utils.parseUnits(tokenAmount, decimals); // Convert token amount to the required format using the obtained decimals
+
       const tokenContract = new ethers.Contract(tokenAddress, ERC20, provider);
       const approvedAmount = await tokenContract.allowance(walletAddress, vaultAddress);
-      newApprovedTokens[i] = approvedAmount.gte(amountToApprove);
+
+      newApprovedTokens[i] = approvedAmount.gte(requiredAmount);
     }
     setApprovedTokens(newApprovedTokens);
   }
 
-  const handleTokenAddressChange = (event, index) => {
-    const newTokenAddresses = [...tokenAddresses];
-    newTokenAddresses[index] = event.target.value;
-    setTokenAddresses(newTokenAddresses);
+  const handleTokenAmountChange = async (event, index) => {
+    const newTokenAmounts = [...tokenAmounts];
+    newTokenAmounts[index] = event.target.value;
+    setTokenAmounts(newTokenAmounts);
 
-    // set yield field to false by default when a token address is entered
-    const updatedArray = [...yieldProtocolFeeExempt];
-    updatedArray[index] = false;
-    setYieldProtocolFeeExempt(updatedArray);
-
-    const newApprovedTokens = [...approvedTokens];
-    if (!isAddress(event.target.value)) {
-      newApprovedTokens[index] = false;
-    }
-    setApprovedTokens(newApprovedTokens);
-
-    if (isAddress(event.target.value)) {
-      checkApprovedTokens(newTokenAddresses);
+    if (tokenAddresses[index]) {
+      const decimals = await checkDecimals(tokenAddresses[index]);
+      checkApprovedTokens(tokenAddresses, newTokenAmounts, decimals);
     }
   };
+
+  async function checkDecimals(tokenAddress) {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = await provider.getSigner();
+    const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
+    const decimals = await tokenContract.decimals();
+    return decimals;
+  }
 
   async function createPoolWeighted() {
     const provider = new ethers.providers.Web3Provider(window.ethereum);
@@ -395,14 +403,6 @@ function App() {
     });
   };
 
-  async function checkDecimals(tokenAddress) {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = await provider.getSigner();
-    const tokenContract = new ethers.Contract(tokenAddress, ERC20, signer);
-    const decimals = await tokenContract.decimals();
-    return decimals;
-  }
-
   const additionalTextFields = [
     {
       label: "Pool Name\u00A0\u00A0\u00A0\u00A0",
@@ -581,7 +581,7 @@ function App() {
                   <TextField
                     label={`Token Address ${rowIndex + 1}\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenAddresses[rowIndex]}
-                    onChange={(event) => handleTokenAddressChange(event, rowIndex)}
+                    onChange={(event) => handleInputChange(event, rowIndex, setTokenAddresses)}
                     fullWidth
                     InputProps={{
                       sx: {
@@ -660,7 +660,7 @@ function App() {
                   <TextField
                     label={`Token Amount ${rowIndex + 1}\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}
                     value={tokenAmounts[rowIndex]}
-                    onChange={(event) => handleInputChange(event, rowIndex, setTokenAmounts)}
+                    onChange={(event) => handleTokenAmountChange(event, rowIndex)}
                     fullWidth
                     InputProps={{
                       sx: {
