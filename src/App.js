@@ -252,16 +252,32 @@ function App() {
     const ethcontract = new ethers.Contract(FactoryAddressComposable[network], CreateComposableABI, signer);
 
     // only keep non-blank textfields
-    const filteredTokens = tokenAddresses.filter((token) => token !== "");
-    const filteredProtocolFeeExempt = yieldProtocolFeeExempt.filter((feebool) => feebool !== "");
+    const defaultProtocolFeeExempt = false;
+    let filteredTokens = tokenAddresses.filter((token) => token !== "");
+    let filteredProtocolFeeExempt = yieldProtocolFeeExempt.filter((feebool) => feebool !== "");
+    const protocolFeeExemptLength = filteredTokens.length;
+    for (let i = filteredProtocolFeeExempt.length; i < protocolFeeExemptLength; i++) {
+      filteredProtocolFeeExempt.push(defaultProtocolFeeExempt);
+    }
 
     // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    const filteredRateProviders = rateProviders.filter((rateProvider) => rateProvider !== "");
+    let filteredRateProviders = rateProviders.filter((rateProvider) => rateProvider !== "");
     const rateProvidersLength = filteredTokens.length;
     for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
       filteredRateProviders.push(defaultRateProvider);
     }
+
+    // Create a map linking each token address to its corresponding protocol fee exempt status and rate provider.
+    const tokenMap = {};
+    filteredTokens.forEach((token, index) => {
+      tokenMap[token] = { protocolFeeExempt: filteredProtocolFeeExempt[index], rateProvider: filteredRateProviders[index] };
+    });
+
+    // Sort token addresses in ascending order and regenerate the other arrays in this new order.
+    filteredTokens = Object.keys(tokenMap).sort();
+    filteredProtocolFeeExempt = filteredTokens.map((token) => tokenMap[token].protocolFeeExempt);
+    filteredRateProviders = filteredTokens.map((token) => tokenMap[token].rateProvider);
 
     // add rate durations for every row there is a token address
     const rateCacheDurations = Array.from({ length: tokenAddresses.filter((address) => address !== "").length }, (_, index) => rateCacheDuration);
