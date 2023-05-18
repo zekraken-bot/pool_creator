@@ -214,18 +214,24 @@ function App() {
     const signer = await provider.getSigner();
     const ethcontract = new ethers.Contract(FactoryAddressWeighted[network], CreateWeightedABI, signer);
 
-    // only keep non-blank textfields
-    const filteredTokens = tokenAddresses.filter((token) => token !== "");
+    // only keep non-blank token addresses
+    let filteredTokens = tokenAddresses.filter((token) => token !== "");
+
     const filteredWeights = tokenWeights.filter((weight) => weight !== "");
-    const weights = filteredWeights.map((weight) => ethers.utils.parseUnits((weight / 100).toString(), 18));
+    let weights = filteredWeights.map((weight) => ethers.utils.parseUnits((weight / 100).toString(), 18));
 
     // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    const filteredRateProviders = rateProviders.filter((rateProvider) => rateProvider !== "");
-    const rateProvidersLength = filteredTokens.length;
-    for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
-      filteredRateProviders.push(defaultRateProvider);
-    }
+    let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider !== "" ? rateProvider : defaultRateProvider));
+
+    // Sort token addresses in ascending order and regenerate the other arrays in this new order
+    const tokenMap = {};
+    filteredTokens.forEach((token, index) => {
+      tokenMap[token] = { weight: weights[index], rateProvider: filteredRateProviders[index] };
+    });
+    filteredTokens = Object.keys(tokenMap).sort();
+    weights = filteredTokens.map((token) => tokenMap[token].weight);
+    filteredRateProviders = filteredTokens.map((token) => tokenMap[token].rateProvider);
 
     // convert swap fee to ethers format
     const swapFeePercentageWithDecimals = ethers.utils.parseUnits(swapFeePercentage.toString(), 18);
@@ -251,30 +257,21 @@ function App() {
     const signer = await provider.getSigner();
     const ethcontract = new ethers.Contract(FactoryAddressComposable[network], CreateComposableABI, signer);
 
-    // only keep non-blank textfields
-    const defaultProtocolFeeExempt = false;
+    // only keep non-blank token addresses
     let filteredTokens = tokenAddresses.filter((token) => token !== "");
-    let filteredProtocolFeeExempt = yieldProtocolFeeExempt.filter((feebool) => feebool !== "");
-    const protocolFeeExemptLength = filteredTokens.length;
-    for (let i = filteredProtocolFeeExempt.length; i < protocolFeeExemptLength; i++) {
-      filteredProtocolFeeExempt.push(defaultProtocolFeeExempt);
-    }
+
+    const defaultProtocolFeeExempt = false;
+    let filteredProtocolFeeExempt = yieldProtocolFeeExempt.map((feebool) => (feebool !== "" ? feebool : defaultProtocolFeeExempt));
 
     // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    let filteredRateProviders = rateProviders.filter((rateProvider) => rateProvider !== "");
-    const rateProvidersLength = filteredTokens.length;
-    for (let i = filteredRateProviders.length; i < rateProvidersLength; i++) {
-      filteredRateProviders.push(defaultRateProvider);
-    }
+    let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider !== "" ? rateProvider : defaultRateProvider));
 
-    // Create a map linking each token address to its corresponding protocol fee exempt status and rate provider.
+    // Sort token addresses in ascending order and regenerate the other arrays in this new order
     const tokenMap = {};
     filteredTokens.forEach((token, index) => {
       tokenMap[token] = { protocolFeeExempt: filteredProtocolFeeExempt[index], rateProvider: filteredRateProviders[index] };
     });
-
-    // Sort token addresses in ascending order and regenerate the other arrays in this new order.
     filteredTokens = Object.keys(tokenMap).sort();
     filteredProtocolFeeExempt = filteredTokens.map((token) => tokenMap[token].protocolFeeExempt);
     filteredRateProviders = filteredTokens.map((token) => tokenMap[token].rateProvider);
