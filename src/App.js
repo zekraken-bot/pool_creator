@@ -332,11 +332,7 @@ function App() {
     }
 
     const linkedItems = assets.map((asset, index) => [asset, multipliedAmounts[index]]);
-    linkedItems.sort((a, b) => {
-      if (a[0] < b[0]) return -1;
-      if (a[0] > b[0]) return 1;
-      return 0;
-    });
+    linkedItems.sort((a, b) => (ethers.BigNumber.from(a[0]).lt(ethers.BigNumber.from(b[0])) ? -1 : 1));
 
     const sortedAssets = linkedItems.map((item) => item[0]);
     const sortedAmountsIn2 = linkedItems.map((item) => item[1].toString());
@@ -379,11 +375,7 @@ function App() {
     }
 
     const linkedItems = assets.map((asset, index) => [asset, multipliedAmounts[index]]);
-    linkedItems.sort((a, b) => {
-      if (a[0] < b[0]) return -1;
-      if (a[0] > b[0]) return 1;
-      return 0;
-    });
+    linkedItems.sort((a, b) => (ethers.BigNumber.from(a[0]).lt(ethers.BigNumber.from(b[0])) ? -1 : 1));
 
     const sortedAssets = linkedItems.map((item) => item[0]);
     const sortedAmountsIn2 = linkedItems.map((item) => item[1].toString());
@@ -514,6 +506,11 @@ function App() {
             {poolType === "Weighted" ? (
               <>
                 <strong>
+                  <span style={{ color: "red", fontSize: "16px" }}>**Please read each tip before proceeding**</span>
+                </strong>
+                <br />
+                <br />
+                <strong>
                   <u>Usage Tips for Weighted:</u>
                 </strong>
                 <li>swap fee percentage should be entered as 0.01 for 1%</li>
@@ -524,6 +521,11 @@ function App() {
               </>
             ) : (
               <>
+                <strong>
+                  <span style={{ color: "red", fontSize: "16px" }}>**Please read each tip before proceeding**</span>
+                </strong>
+                <br />
+                <br />
                 <strong>
                   <u>Usage Tips for ComposableStable:</u>
                 </strong>
@@ -536,6 +538,7 @@ function App() {
             )}
           </ul>
         </div>
+        <br />
         <div style={{ display: "flex", justifyContent: "center" }}>
           <Button variant="contained" onClick={poolType === "Weighted" ? createPoolWeighted : createPoolComposable} sx={{ marginRight: 2 }}>
             Create Pool
@@ -697,14 +700,15 @@ function App() {
       <br />
       <br />
       <footer className="footer">
-        open source project created by&nbsp;
+        Open source project created by&nbsp;
         <a href="https://twitter.com/The_Krake" target="_blank" rel="noopener noreferrer">
           @ZeKraken
         </a>
-        &nbsp;:&nbsp;
-        <a href="https://github.com/zekraken-bot/pool_creator" target="_blank" rel="noopener noreferrer">
+        &nbsp;|&nbsp;
+        <a href="https://github.com/zekraken-bot/veBAL_Multi_Voter" target="_blank" rel="noopener noreferrer">
           github link
         </a>
+        &nbsp;|&nbsp;Disclaimer: use at your discretion, I take no responsiblity for results
       </footer>
       <br />
     </>
