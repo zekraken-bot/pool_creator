@@ -80,26 +80,28 @@ function App() {
       setTokenAmounts(new Array(5).fill(""));
       setApprovedTokens(new Array(5).fill(false));
     }
-    if (window.ethereum) {
+    const ethereum = window.ethereum || window.ethereumProvider;
+    if (ethereum) {
       async function checkWalletonLoad() {
-        const accounts = await window.ethereum.request({
+        const accounts = await ethereum.request({
           method: "eth_accounts",
         });
         if (accounts.length) {
-          const networkId = await window.ethereum.request({
+          const networkId = await ethereum.request({
             method: "net_version",
           });
+
           setNetwork(getNetworkName(networkId));
           console.log("Your wallet is connected");
           const ethaddress = accounts[0];
           setWalletAddress(ethaddress);
           setButtonText("Wallet Connected");
         } else {
-          console.log("Metamask is not connected");
+          console.log("Wallet is not connected");
         }
       }
       async function updateNetwork() {
-        const networkId = await window.ethereum.request({
+        const networkId = await ethereum.request({
           method: "net_version",
         });
         setNetwork(getNetworkName(networkId));
@@ -113,22 +115,23 @@ function App() {
         checkWalletonLoad();
       };
 
-      window.ethereum.on("chainChanged", onChainChanged);
-      window.ethereum.on("accountsChanged", onAccountsChanged);
+      ethereum.on("chainChanged", onChainChanged);
+      ethereum.on("accountsChanged", onAccountsChanged);
 
       checkWalletonLoad();
 
       return () => {
-        window.ethereum.removeListener("chainChanged", onChainChanged);
-        window.ethereum.removeListener("accountsChanged", onAccountsChanged);
+        ethereum.removeListener("chainChanged", onChainChanged);
+        ethereum.removeListener("accountsChanged", onAccountsChanged);
       };
     } else {
-      console.log("Metamask not detected");
+      console.log("Wallet not detected");
     }
   }, [poolType]);
 
   function getNetworkName(networkId) {
-    switch (networkId) {
+    const id = String(networkId);
+    switch (id) {
       case "1":
         return "Mainnet";
       case "5":
@@ -145,9 +148,10 @@ function App() {
   }
 
   async function requestAccount() {
-    if (window.ethereum) {
+    const ethereum = window.ethereum || window.ethereumProvider;
+    if (ethereum) {
       try {
-        const accounts = await window.ethereum.request({
+        const accounts = await ethereum.request({
           method: "eth_requestAccounts",
         });
         const ethaddress = accounts[0];
@@ -157,7 +161,7 @@ function App() {
         console.log("Error connecting...");
       }
     } else {
-      console.log("Metamask not detected");
+      console.log("Wallet not detected");
     }
   }
 
