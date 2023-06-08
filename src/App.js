@@ -19,7 +19,7 @@ function App() {
     Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
     Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
     Gnosis: "0x6CaD2ea22BFA7F4C14Aae92E47F510Cd5C509bc7",
-    zkEVM: "0x6CaD2ea22BFA7F4C14Aae92E47F510Cd5C509bc7",
+    zkEVM: "0x03F3Fb107e74F2EAC9358862E91ad3c692712054",
   };
   const FactoryAddressComposable = {
     Goerli: "0x1802953277FD955f9a254B80Aa0582f193cF1d77",
@@ -708,13 +708,13 @@ function App() {
       <br />
       <br />
       <footer className="footer">
-        Open source project created by&nbsp;
+        created by&nbsp;
         <a href="https://twitter.com/The_Krake" target="_blank" rel="noopener noreferrer">
           @ZeKraken
         </a>
-        &nbsp;|&nbsp;
+        &nbsp;| open source: &nbsp;
         <a href="https://github.com/zekraken-bot/veBAL_Multi_Voter" target="_blank" rel="noopener noreferrer">
-          github link
+          github
         </a>
         &nbsp;|&nbsp;Disclaimer: use at your discretion, I take no responsiblity for results
       </footer>
