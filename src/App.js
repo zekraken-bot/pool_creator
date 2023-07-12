@@ -1,7 +1,7 @@
 import "./App.css";
 import React, { useEffect, useState } from "react";
 import Typography from "@mui/material/Typography";
-import { Grid, TextField, Button, ButtonGroup, Select, MenuItem, Container, Box } from "@mui/material";
+import { Grid, TextField, Button, Select, MenuItem, Container, Box, ButtonGroup } from "@mui/material";
 
 import { ethers } from "ethers";
 
@@ -22,12 +22,12 @@ function App() {
     zkEVM: "0x03F3Fb107e74F2EAC9358862E91ad3c692712054",
   };
   const FactoryAddressComposable = {
-    Goerli: "0x1802953277FD955f9a254B80Aa0582f193cF1d77",
-    Mainnet: "0xfADa0f4547AB2de89D1304A668C39B3E09Aa7c76",
-    Polygon: "0x6Ab5549bBd766A43aFb687776ad8466F8b42f777",
-    Arbitrum: "0x2498A2B0d6462d2260EAC50aE1C3e03F4829BA95",
-    Gnosis: "0xD87F44Df0159DC78029AB9CA7D7e57E7249F5ACD",
-    zkEVM: "0x8eA89804145c007e7D226001A96955ad53836087",
+    Goerli: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
+    Mainnet: "0xDB8d758BCb971e482B2C45f7F8a7740283A1bd3A",
+    Polygon: "0xe2fa4e1d17725e72dcdAfe943Ecf45dF4B9E285b",
+    Arbitrum: "0xA8920455934Da4D853faac1f94Fe7bEf72943eF1",
+    Gnosis: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
+    zkEVM: "0x956CCab09898C0AF2aCa5e6C229c3aD4E93d9288",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -37,6 +37,7 @@ function App() {
   const [swapFeePercentage, setSwapFeePercentage] = useState("");
   const [amplificationFactor, setAmplificationFactor] = useState("");
   const [rateCacheDuration, setRateCacheDuration] = useState("");
+  const [yieldProtocolFeeExempt, setYieldProtocolFeeExempt] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState("0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b");
   const [poolId, setPoolId] = useState("");
   const [poolContract, setPoolContract] = useState("");
@@ -49,7 +50,10 @@ function App() {
   const [rateProviders, setRateProviders] = useState([]);
   const [tokenAmounts, setTokenAmounts] = useState([]);
   const [approvedTokens, setApprovedTokens] = useState([]);
-  const [yieldProtocolFeeExempt, setYieldProtocolFeeExempt] = useState([]);
+
+  const handleButtonClick = (value) => {
+    setYieldProtocolFeeExempt(value);
+  };
 
   const handleInputChange = (event, rowIndex, setter) => {
     const newValue = event.target.value;
@@ -58,12 +62,6 @@ function App() {
       newState[rowIndex] = newValue;
       return newState;
     });
-  };
-
-  const handleButtonClick = (index, setter, value) => {
-    const updatedArray = [...yieldProtocolFeeExempt];
-    updatedArray[index] = value;
-    setter(updatedArray);
   };
 
   useEffect(() => {
@@ -77,7 +75,6 @@ function App() {
     } else if (poolType === "ComposableStable") {
       setRows(new Array(5).fill(null));
       setTokenAddresses(new Array(5).fill(""));
-      setYieldProtocolFeeExempt(new Array(5).fill(""));
       setRateProviders(new Array(5).fill(""));
       setTokenAmounts(new Array(5).fill(""));
       setApprovedTokens(new Array(5).fill(false));
@@ -268,9 +265,6 @@ function App() {
     // only keep non-blank token addresses
     let filteredTokens = tokenAddresses.filter((token) => token !== "");
 
-    const defaultProtocolFeeExempt = false;
-    let filteredProtocolFeeExempt = yieldProtocolFeeExempt.map((feebool) => (feebool !== "" ? feebool : defaultProtocolFeeExempt));
-
     // fill rateProviders with the default value if token address rows are blank
     const defaultRateProvider = "0x0000000000000000000000000000000000000000";
     let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider !== "" ? rateProvider : defaultRateProvider));
@@ -278,10 +272,9 @@ function App() {
     // Sort token addresses in ascending order and regenerate the other arrays in this new order
     const tokenMap = {};
     filteredTokens.forEach((token, index) => {
-      tokenMap[token] = { protocolFeeExempt: filteredProtocolFeeExempt[index], rateProvider: filteredRateProviders[index] };
+      tokenMap[token] = { rateProvider: filteredRateProviders[index] };
     });
     filteredTokens = Object.keys(tokenMap).sort();
-    filteredProtocolFeeExempt = filteredTokens.map((token) => tokenMap[token].protocolFeeExempt);
     filteredRateProviders = filteredTokens.map((token) => tokenMap[token].rateProvider);
 
     // add rate durations for every row there is a token address
@@ -302,7 +295,7 @@ function App() {
       amplificationFactor,
       filteredRateProviders,
       rateCacheDurations,
-      filteredProtocolFeeExempt,
+      yieldProtocolFeeExempt,
       swapFeePercentageWithDecimals,
       ownerAddress,
       salt0x
@@ -447,6 +440,9 @@ function App() {
       value: rateCacheDuration,
       onChange: setRateCacheDuration,
     },
+    poolType === "ComposableStable" && {
+      id: "yieldProtocolFeeExempt",
+    },
     {
       label: "Owner Address\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "ownerAddress",
@@ -461,7 +457,7 @@ function App() {
     },
     poolType === "ComposableStable" && {
       label: "Pool Contract\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
-      id: "poolId",
+      id: "poolContract",
       value: poolContract,
       onChange: setPoolContract,
     },
@@ -469,16 +465,32 @@ function App() {
     .filter(Boolean)
     .map(({ label, id, value, onChange }, index) => (
       <Grid item xs={8} key={index} sx={{ padding: "6px" }}>
-        <TextField
-          label={label}
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          InputLabelProps={{ sx: { color: "white" } }}
-          InputProps={{
-            sx: { color: "yellow", width: "325px", fontSize: "12px" },
-          }}
-        />
+        {id === "yieldProtocolFeeExempt" ? (
+          <React.Fragment>
+            <Typography variant="body1" component="div" gutterBottom style={{ color: "white" }}>
+              Yield Protocol Fee Exempt?
+            </Typography>
+            <ButtonGroup color="primary" variant="contained" fullWidth aria-label="Yield Protocol Fee Exempt?" sx={{ mb: 1 }}>
+              <Button onClick={() => handleButtonClick(true)} variant={yieldProtocolFeeExempt ? "contained" : "outlined"}>
+                True
+              </Button>
+              <Button onClick={() => handleButtonClick(false)} variant={!yieldProtocolFeeExempt ? "contained" : "outlined"}>
+                False
+              </Button>
+            </ButtonGroup>
+          </React.Fragment>
+        ) : (
+          <TextField
+            label={label}
+            id={id}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            InputLabelProps={{ sx: { color: "white" } }}
+            InputProps={{
+              sx: { color: "yellow", width: "325px", fontSize: "12px" },
+            }}
+          />
+        )}
       </Grid>
     ));
 
@@ -578,11 +590,13 @@ function App() {
                 Token Addresses
               </Typography>
             </Grid>
-            <Grid item xs={2}>
-              <Typography variant="h6" sx={{ color: "pink" }}>
-                {poolType === "ComposableStable" ? "Protocol Fee Exempt?" : "Token Weights"}
-              </Typography>
-            </Grid>
+            {poolType === "Weighted" && (
+              <Grid item xs={2}>
+                <Typography variant="h6" sx={{ color: "pink" }}>
+                  Token Weights
+                </Typography>
+              </Grid>
+            )}
             <Grid item xs={3}>
               <Typography variant="h6" sx={{ color: "pink" }}>
                 Rate Providers
@@ -620,8 +634,8 @@ function App() {
                     }}
                   />
                 </Grid>
-                <Grid item xs={2}>
-                  {poolType === "Weighted" ? (
+                {poolType === "Weighted" && (
+                  <Grid item xs={2}>
                     <TextField
                       label={`Token Weight ${rowIndex + 1}`}
                       value={tokenWeights[rowIndex]}
@@ -639,18 +653,8 @@ function App() {
                         },
                       }}
                     />
-                  ) : (
-                    <ButtonGroup color="primary" variant="contained" fullWidth aria-label={`Yield Protocol Fee Exempt? ${rowIndex + 1}`}>
-                      <Button onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, true)} variant={yieldProtocolFeeExempt[rowIndex] ? "contained" : "outlined"}>
-                        True
-                      </Button>
-                      <Button onClick={() => handleButtonClick(rowIndex, setYieldProtocolFeeExempt, false)} variant={yieldProtocolFeeExempt[rowIndex] ? "outlined" : "contained"}>
-                        False
-                      </Button>
-                    </ButtonGroup>
-                  )}
-                </Grid>
-
+                  </Grid>
+                )}
                 <Grid item xs={3}>
                   <TextField
                     label={`Rate Provider ${rowIndex + 1}\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0`}

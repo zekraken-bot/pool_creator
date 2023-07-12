@@ -77,9 +77,9 @@ export const CreateComposableABI = [
         type: "uint256[]",
       },
       {
-        internalType: "bool[]",
-        name: "exemptFromYieldProtocolFeeFlags",
-        type: "bool[]",
+        internalType: "bool",
+        name: "exemptFromYieldProtocolFeeFlag",
+        type: "bool",
       },
       {
         internalType: "uint256",
