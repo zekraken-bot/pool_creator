@@ -20,6 +20,7 @@ function App() {
     Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
     Gnosis: "0x6CaD2ea22BFA7F4C14Aae92E47F510Cd5C509bc7",
     zkEVM: "0x03F3Fb107e74F2EAC9358862E91ad3c692712054",
+    Avalanche: "0x230a59F4d9ADc147480f03B0D3fFfeCd56c3289a",
   };
   const FactoryAddressComposable = {
     Goerli: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
@@ -28,6 +29,7 @@ function App() {
     Arbitrum: "0xA8920455934Da4D853faac1f94Fe7bEf72943eF1",
     Gnosis: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
     zkEVM: "0x956CCab09898C0AF2aCa5e6C229c3aD4E93d9288",
+    Avalanche: "0xE42FFA682A26EF8F25891db4882932711D42e467",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -143,6 +145,8 @@ function App() {
         return "Gnosis";
       case "1101":
         return "zkEVM";
+      case "43114":
+        return "Avalanche";
       default:
         return "Unknown network";
     }
