@@ -238,7 +238,11 @@ function App() {
     filteredTokens.forEach((token, index) => {
       tokenMap[token] = { weight: weights[index], rateProvider: filteredRateProviders[index] };
     });
-    filteredTokens = Object.keys(tokenMap).sort();
+
+    filteredTokens = Object.keys(tokenMap).sort((a, b) => {
+      return ethers.BigNumber.from(a).lt(ethers.BigNumber.from(b)) ? -1 : 1;
+    });
+
     weights = filteredTokens.map((token) => tokenMap[token].weight);
     filteredRateProviders = filteredTokens.map((token) => tokenMap[token].rateProvider);
 
@@ -278,7 +282,11 @@ function App() {
     filteredTokens.forEach((token, index) => {
       tokenMap[token] = { rateProvider: filteredRateProviders[index] };
     });
-    filteredTokens = Object.keys(tokenMap).sort();
+
+    filteredTokens = Object.keys(tokenMap).sort((a, b) => {
+      return ethers.BigNumber.from(a).lt(ethers.BigNumber.from(b)) ? -1 : 1;
+    });
+
     filteredRateProviders = filteredTokens.map((token) => tokenMap[token].rateProvider);
 
     // add rate durations for every row there is a token address
