@@ -545,11 +545,15 @@ function App() {
                 <strong>
                   <u>Usage Tips for Weighted:</u>
                 </strong>
-                <li>swap fee percentage should be entered as 0.01 for 1%</li>
-                <li>token weights should be entered as 80 for 80% or 50 for 50%</li>
-                <li>if a rate provider is not supplied, the 0x0000 address will be used</li>
-                <li>token amounts should be entered in acutal amounts, 0.001 ETH for example</li>
-                <li>pool id field available to perform the init join separately (find pool id on the etherscan contract)</li>
+                <li>swap fee percentage should be entered as 0.01 if you want 1%</li>
+                <li>token weights should be entered as 80 if you want 80% or 50 if you want 50%</li>
+                <li>if you need to create equal weighted pool such as 33.33/33.33/33.34, make sure to use 9 digits, 33.3333333/33.3333333/33.3333334 for example</li>
+                <li>if a rate provider is not supplied, the zero address will be automatically used</li>
+                <li>token amounts should be entered in number of tokens you want to deposit, 0.001 ETH for that much ETH</li>
+                <li>
+                  pool id automatically populates when the pool contract is created; pool id field can be used to perform the 'init join' tx separately (can find pool id on the
+                  etherscan contract)
+                </li>
               </>
             ) : (
               <>
@@ -561,11 +565,14 @@ function App() {
                 <strong>
                   <u>Usage Tips for ComposableStable:</u>
                 </strong>
-                <li>swap fee percentage should be entered as 0.01 for 1%</li>
+                <li>swap fee percentage should be entered as 0.01 if you want 1%</li>
                 <li>protocol fee exempt is set to false by default</li>
-                <li>if a rate provider is not supplied, the 0x0000 address will be used</li>
-                <li>token amounts should be entered in acutal amounts, 0.001 ETH for example</li>
-                <li>pool id and pool contract fields available to perform the init join separately (find pool id on the etherscan contract)</li>
+                <li>if a rate provider is not supplied, the zero address will be automatically used</li>
+                <li>token amounts should be entered in number of tokens you want to deposit, 0.001 ETH for that much ETH</li>
+                <li>
+                  pool id automatically populates when the pool contract is created; pool id field can be used to perform the 'init join' tx separately (can find pool id on the
+                  etherscan contract)
+                </li>
               </>
             )}
           </ul>
