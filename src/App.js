@@ -29,7 +29,7 @@ function App() {
     Polygon: "0xe2fa4e1d17725e72dcdAfe943Ecf45dF4B9E285b",
     Arbitrum: "0xA8920455934Da4D853faac1f94Fe7bEf72943eF1",
     Gnosis: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
-    zkEVM: "0x956CCab09898C0AF2aCa5e6C229c3aD4E93d9288",
+    zkEVM: "0x577e5993B9Cc480F07F98B5Ebd055604bd9071C4",
     Avalanche: "0xE42FFA682A26EF8F25891db4882932711D42e467",
     Base: "0x8df317a729fcaA260306d7de28888932cb579b88",
   };
@@ -45,7 +45,7 @@ function App() {
   const [ownerAddress, setOwnerAddress] = useState("0xba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1ba1b");
   const [poolId, setPoolId] = useState("");
   const [poolContract, setPoolContract] = useState("");
-  const [poolType, setPoolType] = useState("Weighted");
+  const [poolType, setPoolType] = useState("weighted");
   const vaultAddress = "0xBA12222222228d8Ba445958a75a0704d566BF2C8";
 
   const [rows, setRows] = useState([]);
@@ -54,6 +54,8 @@ function App() {
   const [rateProviders, setRateProviders] = useState([]);
   const [tokenAmounts, setTokenAmounts] = useState([]);
   const [approvedTokens, setApprovedTokens] = useState([]);
+
+  const [generatedLink, setGeneratedLink] = useState("");
 
   const handleButtonClick = (value) => {
     setYieldProtocolFeeExempt(value);
@@ -68,21 +70,122 @@ function App() {
     });
   };
 
-  useEffect(() => {
-    if (poolType === "Weighted") {
-      setRows(new Array(8).fill(null));
-      setTokenAddresses(new Array(8).fill(""));
-      setTokenWeights(new Array(8).fill(""));
-      setRateProviders(new Array(8).fill(""));
-      setTokenAmounts(new Array(8).fill(""));
-      setApprovedTokens(new Array(8).fill(false));
-    } else if (poolType === "ComposableStable") {
-      setRows(new Array(5).fill(null));
-      setTokenAddresses(new Array(5).fill(""));
-      setRateProviders(new Array(5).fill(""));
-      setTokenAmounts(new Array(5).fill(""));
-      setApprovedTokens(new Array(5).fill(false));
+  function generatePoolCreationLink() {
+    //const baseUrl = "http://localhost:3000/";
+    const baseUrl = "https://pool-creator.web.app/";
+    let queryParams;
+    if (poolType === "weighted") {
+      queryParams = new URLSearchParams({
+        pooltypes: poolType,
+        name: poolName,
+        symbol: poolSymbol,
+        swapfee: swapFeePercentage,
+        addresses: tokenAddresses.join(","),
+        weights: tokenWeights.join(","),
+        rateprovider: rateProviders.join(","),
+        amounts: tokenAmounts.join(","),
+      }).toString();
+    } else if (poolType === "composablestable") {
+      queryParams = new URLSearchParams({
+        pooltypes: poolType,
+        name: poolName,
+        symbol: poolSymbol,
+        swapfee: swapFeePercentage,
+        amplification: amplificationFactor,
+        rateduration: rateCacheDuration,
+        yieldexempt: yieldProtocolFeeExempt,
+        addresses: tokenAddresses.join(","),
+        rateprovider: rateProviders.join(","),
+        amounts: tokenAmounts.join(","),
+      }).toString();
     }
+
+    const fullUrl = `${baseUrl}?${queryParams}`;
+    return fullUrl;
+  }
+
+  const handleCreateLinkClick = () => {
+    const link = generatePoolCreationLink();
+    setGeneratedLink(link);
+    navigator.clipboard.writeText(link).then(
+      () => {
+        alert("Link copied to clipboard!");
+      },
+      (err) => {
+        console.error("Could not copy text: ", err);
+      }
+    );
+  };
+
+  useEffect(() => {
+    const numRows = poolType === "weighted" ? 8 : poolType === "composablestable" ? 5 : 0;
+
+    setRows(new Array(numRows).fill(null));
+    setApprovedTokens(new Array(numRows).fill(false));
+
+    const params = new URLSearchParams(window.location.search);
+    const pooltypesParam = params.get("pooltypes");
+    const poolnameParam = params.get("name");
+    const poolsymbolParam = params.get("symbol");
+    const swapfeeParam = params.get("swapfee");
+    const addressesParam = params.get("addresses");
+    const weightsParam = params.get("weights");
+    const rateproviderParam = params.get("rateprovider");
+    const tokenamountParam = params.get("amounts");
+    const amplification = params.get("amplification");
+    const rateduration = params.get("rateduration");
+    const yieldexempt = params.get("yieldexempt");
+
+    let addresses = [];
+    let weights = [];
+    let rateprovider = [];
+    let tokenamount = [];
+
+    if (pooltypesParam) {
+      const formattedPoolType = pooltypesParam.toLowerCase() === "weighted" ? "weighted" : pooltypesParam.toLowerCase() === "composablestable" ? "composablestable" : null;
+      if (formattedPoolType) {
+        setPoolType(formattedPoolType);
+      }
+    }
+
+    if (addressesParam) {
+      addresses = addressesParam.split(",");
+    }
+    if (weightsParam) {
+      weights = weightsParam.split(",");
+    }
+    if (rateproviderParam) {
+      rateprovider = rateproviderParam.split(",");
+    }
+    if (tokenamountParam) {
+      tokenamount = tokenamountParam.split(",");
+    }
+
+    const tokenAddresses = addresses.length > 0 ? addresses.concat(new Array(numRows - addresses.length).fill("")) : new Array(numRows).fill("");
+    const tokenWeights = weights.length > 0 ? weights.concat(new Array(numRows - weights.length).fill("")) : new Array(numRows).fill("");
+    const tokenRateProvider = rateprovider.length > 0 ? rateprovider.concat(new Array(numRows - rateprovider.length).fill("")) : new Array(numRows).fill("");
+    const tokenAmounts = tokenamount.length > 0 ? tokenamount.concat(new Array(numRows - tokenamount.length).fill("")) : new Array(numRows).fill("");
+
+    if (pooltypesParam === "weighted") {
+      setPoolName(poolnameParam);
+      setPoolSymbol(poolsymbolParam);
+      setSwapFeePercentage(swapfeeParam);
+      setTokenAddresses(tokenAddresses);
+      setTokenWeights(tokenWeights);
+      setRateProviders(tokenRateProvider);
+      setTokenAmounts(tokenAmounts);
+    } else if (pooltypesParam === "composablestable") {
+      setPoolName(poolnameParam);
+      setPoolSymbol(poolsymbolParam);
+      setSwapFeePercentage(swapfeeParam);
+      setTokenAddresses(tokenAddresses);
+      setRateProviders(tokenRateProvider);
+      setTokenAmounts(tokenAmounts);
+      setAmplificationFactor(amplification);
+      setRateCacheDuration(rateduration);
+      setYieldProtocolFeeExempt(yieldexempt);
+    }
+
     const ethereum = window.ethereum || window.ethereumProvider;
     if (ethereum) {
       async function checkWalletonLoad() {
@@ -444,19 +547,19 @@ function App() {
       value: swapFeePercentage,
       onChange: setSwapFeePercentage,
     },
-    poolType === "ComposableStable" && {
+    poolType === "composablestable" && {
       label: "Amplification Factor\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "amplificationFactor",
       value: amplificationFactor,
       onChange: setAmplificationFactor,
     },
-    poolType === "ComposableStable" && {
+    poolType === "composablestable" && {
       label: "Rate Cache Duration\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "rateCacheDuration",
       value: rateCacheDuration,
       onChange: setRateCacheDuration,
     },
-    poolType === "ComposableStable" && {
+    poolType === "composablestable" && {
       id: "yieldProtocolFeeExempt",
     },
     {
@@ -471,7 +574,7 @@ function App() {
       value: poolId,
       onChange: setPoolId,
     },
-    poolType === "ComposableStable" && {
+    poolType === "composablestable" && {
       label: "Pool Contract\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0",
       id: "poolContract",
       value: poolContract,
@@ -524,8 +627,8 @@ function App() {
             <label style={{ marginLeft: "20px", fontSize: "14px" }}>Pool Type:</label>
             <br />
             <Select value={poolType} onChange={(e) => setPoolType(e.target.value)} sx={{ backgroundColor: "lightgray" }}>
-              <MenuItem value="Weighted">Weighted</MenuItem>
-              <MenuItem value="ComposableStable">ComposableStable</MenuItem>
+              <MenuItem value="weighted">Weighted</MenuItem>
+              <MenuItem value="composablestable">ComposableStable</MenuItem>
             </Select>
           </div>
           <Button variant="contained" onClick={requestAccount}>
@@ -539,7 +642,7 @@ function App() {
       <div className="mainContent" style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ alignSelf: "flex-start" }}>
           <ul style={{ textAlign: "left" }}>
-            {poolType === "Weighted" ? (
+            {poolType === "weighted" ? (
               <>
                 <strong>
                   <span style={{ color: "red", fontSize: "16px" }}>**Please read each tip before proceeding**</span>
@@ -583,15 +686,17 @@ function App() {
         </div>
         <br />
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <Button variant="contained" onClick={poolType === "Weighted" ? createPoolWeighted : createPoolComposable} sx={{ marginRight: 2 }}>
+          <Button variant="contained" onClick={poolType === "weighted" ? createPoolWeighted : createPoolComposable} sx={{ marginRight: 2 }}>
             Create Pool
           </Button>
-          <Button variant="contained" onClick={poolType === "Weighted" ? initJoinWeighted : initJoinComposable}>
+          <Button variant="contained" onClick={poolType === "weighted" ? initJoinWeighted : initJoinComposable}>
             Join Pool
+          </Button>
+          <Button variant="contained" onClick={handleCreateLinkClick} sx={{ marginLeft: 2 }}>
+            Create Pre-Filled URL
           </Button>
         </div>
       </div>
-
       <br />
       <Grid container spacing={1} justifyContent="center">
         <Grid item xs={3}>
@@ -613,7 +718,7 @@ function App() {
                 Token Addresses
               </Typography>
             </Grid>
-            {poolType === "Weighted" && (
+            {poolType === "weighted" && (
               <Grid item xs={2}>
                 <Typography variant="h6" sx={{ color: "pink" }}>
                   Token Weights
@@ -657,7 +762,7 @@ function App() {
                     }}
                   />
                 </Grid>
-                {poolType === "Weighted" && (
+                {poolType === "weighted" && (
                   <Grid item xs={2}>
                     <TextField
                       label={`Token Weight ${rowIndex + 1}`}
@@ -732,6 +837,11 @@ function App() {
         </Container>
       </Box>
       <br />
+      {generatedLink && (
+        <div style={{ display: "flex", flexDirection: "column", wordWrap: "break-word", maxWidth: "80%", color: "lightgray", marginLeft: "20px" }}>
+          <span style={{ fontWeight: "bold", textDecoration: "underline" }}>URL Link to pre-filled choices:</span> {generatedLink}
+        </div>
+      )}
       <br />
       <br />
       <footer className="footer">
