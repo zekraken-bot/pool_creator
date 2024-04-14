@@ -14,7 +14,6 @@ import { vaultABI } from "./abi/BalVault";
 
 function App() {
   const FactoryAddressWeighted = {
-    Goerli: "0x230a59f4d9adc147480f03b0d3fffecd56c3289a",
     Mainnet: "0x897888115Ada5773E02aA29F775430BFB5F34c51",
     Polygon: "0xFc8a407Bba312ac761D8BFe04CE1201904842B76",
     Arbitrum: "0xc7E5ED1054A24Ef31D827E6F86caA58B3Bc168d7",
@@ -22,9 +21,9 @@ function App() {
     zkEVM: "0x03F3Fb107e74F2EAC9358862E91ad3c692712054",
     Avalanche: "0x230a59F4d9ADc147480f03B0D3fFfeCd56c3289a",
     Base: "0x4C32a8a8fDa4E24139B51b456B42290f51d6A1c4",
+    Optimism: "0x230a59F4d9ADc147480f03B0D3fFfeCd56c3289a",
   };
   const FactoryAddressComposable = {
-    Goerli: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
     Mainnet: "0xDB8d758BCb971e482B2C45f7F8a7740283A1bd3A",
     Polygon: "0xe2fa4e1d17725e72dcdAfe943Ecf45dF4B9E285b",
     Arbitrum: "0xA8920455934Da4D853faac1f94Fe7bEf72943eF1",
@@ -32,6 +31,7 @@ function App() {
     zkEVM: "0x577e5993B9Cc480F07F98B5Ebd055604bd9071C4",
     Avalanche: "0xE42FFA682A26EF8F25891db4882932711D42e467",
     Base: "0x8df317a729fcaA260306d7de28888932cb579b88",
+    Optimism: "0x043A2daD730d585C44FB79D2614F295D2d625412",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -240,8 +240,8 @@ function App() {
     switch (id) {
       case "1":
         return "Mainnet";
-      case "5":
-        return "Goerli";
+      case "10":
+        return "Optimism";
       case "137":
         return "Polygon";
       case "42161":
