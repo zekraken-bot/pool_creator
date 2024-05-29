@@ -22,16 +22,20 @@ function App() {
     Avalanche: "0x230a59F4d9ADc147480f03B0D3fFfeCd56c3289a",
     Base: "0x4C32a8a8fDa4E24139B51b456B42290f51d6A1c4",
     Optimism: "0x230a59F4d9ADc147480f03B0D3fFfeCd56c3289a",
+    Fraxtal: "0x9dA18982a33FD0c7051B19F0d7C76F2d5E7e017c",
+    Mode: "0xc3ccacE87f6d3A81724075ADcb5ddd85a8A1bB68",
   };
   const FactoryAddressComposable = {
-    Mainnet: "0xDB8d758BCb971e482B2C45f7F8a7740283A1bd3A",
-    Polygon: "0xe2fa4e1d17725e72dcdAfe943Ecf45dF4B9E285b",
-    Arbitrum: "0xA8920455934Da4D853faac1f94Fe7bEf72943eF1",
-    Gnosis: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
-    zkEVM: "0x577e5993B9Cc480F07F98B5Ebd055604bd9071C4",
-    Avalanche: "0xE42FFA682A26EF8F25891db4882932711D42e467",
-    Base: "0x8df317a729fcaA260306d7de28888932cb579b88",
-    Optimism: "0x043A2daD730d585C44FB79D2614F295D2d625412",
+    Mainnet: "0x5B42eC6D40f7B7965BE5308c70e2603c0281C1E9",
+    Polygon: "0xEAedc32a51c510d35ebC11088fD5fF2b47aACF2E",
+    Arbitrum: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
+    Gnosis: "0x47B489bf5836f83ABD928C316F8e39bC0587B020",
+    zkEVM: "0xf23b4DB826DbA14c0e857029dfF076b1c0264843",
+    Avalanche: "0xb9F8AB3ED3F3aCBa64Bc6cd2DcA74B7F38fD7B88",
+    Base: "0x956CCab09898C0AF2aCa5e6C229c3aD4E93d9288",
+    Optimism: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
+    Fraxtal: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
+    Mode: "0x5DbAd78818D4c8958EfF2d5b95b28385A22113Cd",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -254,6 +258,10 @@ function App() {
         return "Avalanche";
       case "8453":
         return "Base";
+      case "34443":
+        return "Mode";
+      case "252":
+        return "Fraxtal";
       default:
         return "Unknown network";
     }
