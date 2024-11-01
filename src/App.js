@@ -24,6 +24,7 @@ function App() {
     Optimism: "0x230a59F4d9ADc147480f03B0D3fFfeCd56c3289a",
     Fraxtal: "0x9dA18982a33FD0c7051B19F0d7C76F2d5E7e017c",
     Mode: "0xc3ccacE87f6d3A81724075ADcb5ddd85a8A1bB68",
+    Sepolia: "0x7920BFa1b2041911b354747CA7A6cDD2dfC50Cfd",
   };
   const FactoryAddressComposable = {
     Mainnet: "0x5B42eC6D40f7B7965BE5308c70e2603c0281C1E9",
@@ -36,6 +37,7 @@ function App() {
     Optimism: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
     Fraxtal: "0x4bdCc2fb18AEb9e2d281b0278D946445070EAda7",
     Mode: "0x5DbAd78818D4c8958EfF2d5b95b28385A22113Cd",
+    Sepolia: "0x05503B3aDE04aCA81c8D6F88eCB73Ba156982D2B",
   };
   const [walletAddress, setWalletAddress] = useState("");
   const [buttonText, setButtonText] = useState("Connect Wallet");
@@ -262,6 +264,8 @@ function App() {
         return "Mode";
       case "252":
         return "Fraxtal";
+      case "11155111":
+        return "Sepolia";
       default:
         return "Unknown network";
     }
