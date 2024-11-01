@@ -63,6 +63,8 @@ function App() {
 
   const [generatedLink, setGeneratedLink] = useState("");
 
+  const defaultRateProvider = "0x0000000000000000000000000000000000000000";
+
   const handleButtonClick = (value) => {
     setYieldProtocolFeeExempt(value);
   };
@@ -128,6 +130,7 @@ function App() {
 
     setRows(new Array(numRows).fill(null));
     setApprovedTokens(new Array(numRows).fill(false));
+    setRateProviders((prev) => Array.from({ length: numRows }, (_, i) => prev[i] || defaultRateProvider));
 
     const params = new URLSearchParams(window.location.search);
     const pooltypesParam = params.get("pooltypes");
@@ -349,8 +352,7 @@ function App() {
     let weights = filteredWeights.map((weight) => ethers.utils.parseUnits((weight / 100).toString(), 18));
 
     // fill rateProviders with the default value if token address rows are blank
-    const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider !== "" ? rateProvider : defaultRateProvider));
+    let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider && rateProvider.trim() !== "" ? rateProvider : defaultRateProvider));
 
     // Sort token addresses in ascending order and regenerate the other arrays in this new order
     const tokenMap = {};
@@ -373,6 +375,8 @@ function App() {
 
     const salt0x = "0x" + salt;
 
+    console.log(poolName, poolSymbol, filteredTokens, weights, filteredRateProviders, swapFeePercentageWithDecimals, ownerAddress, salt0x);
+
     const transaction = await ethcontract.create(poolName, poolSymbol, filteredTokens, weights, filteredRateProviders, swapFeePercentageWithDecimals, ownerAddress, salt0x);
     const receipt = await transaction.wait();
     const newPoolContract = receipt.logs[0].address;
@@ -393,8 +397,7 @@ function App() {
     let filteredTokens = tokenAddresses.filter((token) => token !== "");
 
     // fill rateProviders with the default value if token address rows are blank
-    const defaultRateProvider = "0x0000000000000000000000000000000000000000";
-    let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider !== "" ? rateProvider : defaultRateProvider));
+    let filteredRateProviders = rateProviders.map((rateProvider) => (rateProvider && rateProvider.trim() !== "" ? rateProvider : defaultRateProvider));
 
     // Sort token addresses in ascending order and regenerate the other arrays in this new order
     const tokenMap = {};
@@ -418,6 +421,19 @@ function App() {
     const salt = [...crypto.getRandomValues(new Uint8Array(32))].map((m) => ("0" + m.toString(16)).slice(-2)).join("");
 
     const salt0x = "0x" + salt;
+
+    console.log(
+      poolName,
+      poolSymbol,
+      filteredTokens,
+      amplificationFactor,
+      filteredRateProviders,
+      rateCacheDurations,
+      yieldProtocolFeeExempt,
+      swapFeePercentageWithDecimals,
+      ownerAddress,
+      salt0x
+    );
 
     const transaction = await ethcontract.create(
       poolName,
@@ -667,7 +683,7 @@ function App() {
                 <li>swap fee percentage should be entered as 0.01 if you want 1%</li>
                 <li>token weights should be entered as 80 if you want 80% or 50 if you want 50%</li>
                 <li>if you need to create equal weighted pool such as 33.33/33.33/33.34, make sure to use 9 digits, 33.3333333/33.3333333/33.3333334 for example</li>
-                <li>if a rate provider is not supplied, the zero address will be automatically used</li>
+                <li>if you do not have a rate provider, the zero address will be used</li>
                 <li>token amounts should be entered in number of tokens you want to deposit, 0.001 ETH for that much ETH</li>
                 <li>
                   pool id automatically populates when the pool contract is created; pool id field can be used to perform the 'init join' tx separately (can find pool id on the
@@ -686,7 +702,7 @@ function App() {
                 </strong>
                 <li>swap fee percentage should be entered as 0.01 if you want 1%</li>
                 <li>protocol fee exempt is set to false by default</li>
-                <li>if a rate provider is not supplied, the zero address will be automatically used</li>
+                <li>if you do not have a rate provider, the zero address will be used</li>
                 <li>token amounts should be entered in number of tokens you want to deposit, 0.001 ETH for that much ETH</li>
                 <li>
                   pool id automatically populates when the pool contract is created; pool id field can be used to perform the 'init join' tx separately (can find pool id on the
